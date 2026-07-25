@@ -1,12 +1,8 @@
 name: Bootstrap Laravel backend
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - tools/bootstrap_payload.py
-      - tools/payload.*
-      - .github/workflows/bootstrap.yml
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
@@ -17,6 +13,8 @@ jobs:
     if: ${{ github.actor != 'github-actions[bot]' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
@@ -24,11 +22,11 @@ jobs:
         run: python tools/bootstrap_payload.py
       - name: Validate PHP syntax
         run: find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
-      - name: Commit generated application
+      - name: Commit generated application to pull-request branch
         run: |
           rm -f tools/bootstrap_payload.py tools/payload.* .github/workflows/bootstrap.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "Implement Elder Brothers Laravel API"
-          git push origin main
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
