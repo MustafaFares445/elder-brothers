@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Merge-triggered bootstrap for the Laravel application.
+# Trusted pull-request bootstrap for the Laravel application.
 import base64
 import io
 import tarfile
