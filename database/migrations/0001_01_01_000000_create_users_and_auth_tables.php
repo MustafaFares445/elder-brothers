@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('email')->nullable()->unique();
             $table->string('password');
             $table->timestamp('phone_verified_at')->nullable();
+            $table->string('avatar_path')->nullable();
             $table->enum('status', ['active', 'suspended'])->default('active')->index();
             $table->boolean('is_admin')->default(false)->index();
             $table->timestamp('last_login_at')->nullable();
