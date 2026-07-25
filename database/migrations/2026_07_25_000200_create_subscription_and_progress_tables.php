@@ -18,6 +18,7 @@ return new class extends Migration
             $table->timestamp('revoked_at')->nullable();
             $table->enum('status', ['active', 'expired', 'revoked'])->default('active')->index();
             $table->timestamps();
+            $table->unique(['user_id', 'course_id']);
             $table->index(['user_id', 'course_id', 'status']);
         });
 
@@ -57,6 +58,7 @@ return new class extends Migration
             $table->timestamp('redeemed_at');
             $table->string('ip_address', 45)->nullable();
             $table->string('device_id')->nullable();
+            $table->timestamps();
             $table->unique(['subscription_qr_code_id', 'user_id']);
         });
     }
