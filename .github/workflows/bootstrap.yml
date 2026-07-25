@@ -1,5 +1,6 @@
 name: Bootstrap Laravel backend
 
+# This one-time workflow expands the committed Laravel source payload.
 on:
   workflow_dispatch:
   pull_request_target:
