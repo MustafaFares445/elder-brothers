@@ -38,7 +38,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('course_id')->constrained()->cascadeOnDelete();
             $table->string('code_hash', 64)->unique();
-            $table->string('code_hint', 20)->nullable();
+            $table->string('code_hint', 191)->nullable();
             $table->string('label')->nullable();
             $table->timestamp('starts_at')->nullable();
             $table->timestamp('expires_at')->nullable()->index();
