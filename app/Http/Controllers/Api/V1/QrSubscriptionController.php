@@ -27,11 +27,11 @@ class QrSubscriptionController extends Controller {
    $existing=$r->user()->subscriptions()->where('course_id',$qr->course_id)->latest()->first();$old=$existing?->expires_at;
    $base=$existing?->isActive()&&$existing->expires_at?->isFuture()?$existing->expires_at:now();$new=$qr->subscription_duration_days?$base->copy()->addDays($qr->subscription_duration_days):null;
    $sub=CourseSubscription::updateOrCreate(['user_id'=>$r->user()->id,'course_id'=>$qr->course_id],['source'=>'qr','starts_at'=>$existing?->starts_at??now(),'expires_at'=>$new,'revoked_at'=>null,'status'=>'active']);
-   $red=QrRedemption::create(['subscription_qr_code_id'=>$qr->id,'user_id'=>$r->user()->id,'course_subscription_id'=>$sub->id,'redeemed_at'=>now(),'ip_address'=>$r->ip(),'device_identifier'=>$d['device_id']??null]);$qr->increment('redemptions_count');
+   $red=QrRedemption::create(['subscription_qr_code_id'=>$qr->id,'user_id'=>$r->user()->id,'course_subscription_id'=>$sub->id,'redeemed_at'=>now(),'ip_address'=>$r->ip(),'device_id'=>$d['device_id']??null]);$qr->increment('redemptions_count');
    $r->user()->notify(new \App\Notifications\SubscriptionActivatedNotification($sub));
    return $this->success(['subscription'=>CatalogResources::subscription($sub,0),'course'=>CatalogResources::course($qr->course,$r->user()),'redemption_id'=>$red->id,'was_extended'=>(bool)$existing,'previous_expires_at'=>$old?->toIso8601String(),'new_expires_at'=>$new?->toIso8601String()],__('api.subscription_activated'),'SUBSCRIPTION_ACTIVATED',$existing?200:201);
   });
  }
  private function find(string $raw){return SubscriptionQrCode::with('course')->where('code_hash',hash('sha256',$raw))->first();}
- private function stateError($qr){if($qr->status==='disabled')return $this->error('QR_DISABLED',__('api.qr_disabled'),422);if($qr->expires_at?->isPast())return $this->error('QR_EXPIRED',__('api.qr_expired'),422);if($qr->starts_at?->isFuture())return $this->error('QR_NOT_STARTED',__('api.qr_not_started'),422);if($qr->redemptions_count >= $qr->max_redemptions)return $this->error('QR_LIMIT_REACHED',__('api.qr_limit_reached'),409);return null;}
+ private function stateError($qr){if($qr->status==='disabled')return $this->error('QR_DISABLED',__('api.qr_disabled'),422);if($qr->expires_at?->isPast())return $this->error('QR_EXPIRED',__('api.qr_expired'),422);if($qr->starts_at?->isFuture())return $this->error('QR_NOT_STARTED',__('api.qr_not_started'),422);if($qr->max_redemptions!==null&&$qr->redemptions_count >= $qr->max_redemptions)return $this->error('QR_LIMIT_REACHED',__('api.qr_limit_reached'),409);return null;}
 }
