@@ -1,0 +1,496 @@
+openapi: 3.1.0
+info:
+  title: Elder Brother Mobile API
+  version: 1.0.0
+  description: Authentication, catalog, QR subscriptions, protected content, progress, notifications, and support APIs.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Authentication
+  - name: Profile
+  - name: Catalog
+  - name: Subscriptions
+  - name: Content
+  - name: Notifications
+  - name: Support
+paths:
+  /auth/register:
+    post:
+      security: []
+      tags: [Authentication]
+      summary: Register a student and send an OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registration created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthPendingResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /auth/verify-otp:
+    post:
+      security: []
+      tags: [Authentication]
+      summary: Verify registration OTP and issue a bearer token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOtpRequest'
+      responses:
+        '200':
+          description: Phone verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /auth/resend-otp:
+    post:
+      security: []
+      tags: [Authentication]
+      summary: Resend an OTP after the cooldown
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, purpose]
+              properties:
+                phone: {type: string}
+                purpose: {type: string, enum: [registration, password_reset, phone_change]}
+      responses:
+        '200': {description: OTP resent}
+        '429': {description: Cooldown active}
+  /auth/login:
+    post:
+      security: []
+      tags: [Authentication]
+      summary: Login using phone and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401': {description: Invalid credentials}
+        '403': {description: Unverified or suspended account}
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Revoke the current bearer token
+      responses:
+        '200': {description: Logged out}
+  /auth/forgot-password:
+    post:
+      security: []
+      tags: [Authentication]
+      summary: Send password-reset OTP
+      responses:
+        '200': {description: OTP sent}
+  /auth/verify-reset-otp:
+    post:
+      security: []
+      tags: [Authentication]
+      summary: Verify reset OTP and return a short-lived reset token
+      responses:
+        '200': {description: Reset token created}
+  /auth/reset-password:
+    post:
+      security: []
+      tags: [Authentication]
+      summary: Reset password using the verified reset token
+      responses:
+        '200': {description: Password reset}
+  /me:
+    get:
+      tags: [Profile]
+      summary: Return profile, preferences, and subscription statistics
+      responses:
+        '200':
+          description: Profile
+    patch:
+      tags: [Profile]
+      summary: Update profile and initiate phone-change verification when needed
+      responses:
+        '200': {description: Profile updated}
+  /me/verify-phone:
+    post:
+      tags: [Profile]
+      summary: Verify a pending phone change
+      responses:
+        '200': {description: Phone changed}
+  /me/avatar:
+    post:
+      tags: [Profile]
+      summary: Replace profile avatar
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [avatar]
+              properties:
+                avatar: {type: string, format: binary}
+      responses:
+        '200': {description: Avatar updated}
+  /me/password:
+    put:
+      tags: [Profile]
+      summary: Change authenticated user's password
+      responses:
+        '200': {description: Password changed}
+  /me/preferences:
+    put:
+      tags: [Profile]
+      summary: Update locale and notification/download preferences
+      responses:
+        '200': {description: Preferences updated}
+  /me/devices:
+    post:
+      tags: [Profile]
+      summary: Upsert an FCM device
+      responses:
+        '200': {description: Device saved}
+  /me/devices/{device}:
+    delete:
+      tags: [Profile]
+      summary: Delete an owned device record
+      parameters:
+        - {name: device, in: path, required: true, schema: {type: integer}}
+      responses:
+        '200': {description: Device removed}
+  /home:
+    get:
+      tags: [Catalog]
+      summary: Return greeting, years, featured courses, and unread count
+      responses:
+        '200': {description: Home payload}
+  /academic-years:
+    get:
+      tags: [Catalog]
+      summary: Paginated active academic years
+      parameters:
+        - {$ref: '#/components/parameters/Search'}
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/PerPage'}
+      responses:
+        '200': {description: Academic years}
+  /academic-years/{academicYear}/subjects:
+    get:
+      tags: [Catalog]
+      summary: Paginated active subjects for an academic year
+      parameters:
+        - {name: academicYear, in: path, required: true, schema: {type: integer}}
+        - {$ref: '#/components/parameters/Search'}
+      responses:
+        '200': {description: Subjects}
+  /subjects/{subject}/courses:
+    get:
+      tags: [Catalog]
+      summary: Published courses for a subject
+      parameters:
+        - {name: subject, in: path, required: true, schema: {type: integer}}
+        - {$ref: '#/components/parameters/Search'}
+      responses:
+        '200': {description: Courses}
+  /courses:
+    get:
+      tags: [Catalog]
+      summary: Filter and search published courses
+      parameters:
+        - {$ref: '#/components/parameters/Search'}
+        - {name: academic_year_id, in: query, schema: {type: integer}}
+        - {name: subject_id, in: query, schema: {type: integer}}
+        - {name: featured, in: query, schema: {type: boolean}}
+        - {name: subscription_status, in: query, schema: {type: string, enum: [active, expired, not_subscribed]}}
+      responses:
+        '200': {description: Courses}
+  /courses/{course}:
+    get:
+      tags: [Catalog]
+      summary: Course details and current-user access state
+      parameters:
+        - {name: course, in: path, required: true, schema: {type: integer}}
+      responses:
+        '200': {description: Course detail}
+  /courses/{course}/content:
+    get:
+      tags: [Content]
+      summary: Course videos/files with locked state
+      parameters:
+        - {name: course, in: path, required: true, schema: {type: integer}}
+        - {name: type, in: query, schema: {type: string, enum: [all, videos, files]}}
+      responses:
+        '200': {description: Course content}
+  /me/courses:
+    get:
+      tags: [Subscriptions]
+      summary: Paginated subscribed courses
+      responses:
+        '200': {description: Subscriptions}
+  /me/subscriptions:
+    get:
+      tags: [Subscriptions]
+      summary: Paginated subscription history
+      responses:
+        '200': {description: Subscriptions}
+  /me/subscriptions/{subscription}:
+    get:
+      tags: [Subscriptions]
+      summary: Owned subscription details
+      parameters:
+        - {name: subscription, in: path, required: true, schema: {type: integer}}
+      responses:
+        '200': {description: Subscription}
+        '404': {description: Not owned or missing}
+  /subscriptions/qr/preview:
+    post:
+      tags: [Subscriptions]
+      summary: Validate QR and preview its course without consuming it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: {type: string}
+      responses:
+        '200': {description: QR preview}
+        '409': {description: Invalid, expired, disabled, or exhausted QR}
+  /subscriptions/qr/redeem:
+    post:
+      tags: [Subscriptions]
+      summary: Transactionally redeem a QR code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, confirm]
+              properties:
+                code: {type: string}
+                confirm: {type: boolean}
+                device_id: {type: string, nullable: true}
+      responses:
+        '201': {description: New subscription}
+        '200': {description: Existing subscription extended}
+        '409': {description: QR replay or state conflict}
+  /videos/{video}/playback-url:
+    post:
+      tags: [Content]
+      summary: Authorize and return a temporary playback URL
+      parameters:
+        - {name: video, in: path, required: true, schema: {type: integer}}
+      responses:
+        '200': {description: Playback URL}
+        '403': {description: Subscription required}
+  /videos/{video}/progress:
+    put:
+      tags: [Content]
+      summary: Upsert resume position and completion state
+      parameters:
+        - {name: video, in: path, required: true, schema: {type: integer}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgressRequest'
+      responses:
+        '200': {description: Progress saved}
+  /videos/{video}/complete:
+    post:
+      tags: [Content]
+      summary: Explicitly complete a video
+      parameters:
+        - {name: video, in: path, required: true, schema: {type: integer}}
+      responses:
+        '200': {description: Video completed}
+  /videos/{video}/download-url:
+    post:
+      tags: [Content]
+      summary: Return temporary download URL when the video is downloadable
+      parameters:
+        - {name: video, in: path, required: true, schema: {type: integer}}
+      responses:
+        '200': {description: Download URL}
+  /course-files/{file}/download-url:
+    post:
+      tags: [Content]
+      summary: Return an authorized temporary file URL
+      parameters:
+        - {name: file, in: path, required: true, schema: {type: integer}}
+      responses:
+        '200': {description: Download URL}
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: Paginated notification inbox
+      responses:
+        '200': {description: Notifications}
+  /notifications/unread-count:
+    get:
+      tags: [Notifications]
+      summary: Return unread count
+      responses:
+        '200': {description: Unread count}
+  /notifications/{notification}/read:
+    patch:
+      tags: [Notifications]
+      summary: Mark an owned notification read
+      parameters:
+        - {name: notification, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Notification updated}
+  /notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: Mark all notifications read
+      responses:
+        '200': {description: Updated count}
+  /content-pages/{slug}:
+    get:
+      security: []
+      tags: [Support]
+      summary: Return localized privacy, terms, or help content
+      parameters:
+        - {name: slug, in: path, required: true, schema: {type: string, enum: [privacy-policy, terms, help]}}
+      responses:
+        '200': {description: Content page}
+  /support-requests:
+    post:
+      tags: [Support]
+      summary: Create a support ticket
+      responses:
+        '201': {description: Support request created}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum
+  parameters:
+    Search:
+      name: q
+      in: query
+      schema: {type: string, maxLength: 100}
+    Page:
+      name: page
+      in: query
+      schema: {type: integer, minimum: 1, default: 1}
+    PerPage:
+      name: per_page
+      in: query
+      schema: {type: integer, minimum: 1, maximum: 50, default: 15}
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [full_name, phone, password, password_confirmation]
+      properties:
+        full_name: {type: string, minLength: 2, maxLength: 100}
+        phone: {type: string}
+        password: {type: string, minLength: 8}
+        password_confirmation: {type: string}
+        device_id: {type: string, nullable: true}
+        platform: {type: string, enum: [android, ios], nullable: true}
+        fcm_token: {type: string, nullable: true}
+    VerifyOtpRequest:
+      type: object
+      required: [phone, otp]
+      properties:
+        phone: {type: string}
+        otp: {type: string, pattern: '^\d{6}$'}
+        device_name: {type: string, nullable: true}
+        device_id: {type: string, nullable: true}
+        platform: {type: string, enum: [android, ios], nullable: true}
+        fcm_token: {type: string, nullable: true}
+    LoginRequest:
+      type: object
+      required: [phone, password]
+      properties:
+        phone: {type: string}
+        password: {type: string}
+        device_name: {type: string, nullable: true}
+        device_id: {type: string, nullable: true}
+        platform: {type: string, enum: [android, ios], nullable: true}
+        fcm_token: {type: string, nullable: true}
+    ProgressRequest:
+      type: object
+      required: [position_seconds, duration_seconds]
+      properties:
+        position_seconds: {type: integer, minimum: 0}
+        duration_seconds: {type: integer, minimum: 1}
+        watched_seconds: {type: integer, minimum: 0, nullable: true}
+        completed: {type: boolean, nullable: true}
+        event: {type: string, enum: [heartbeat, pause, background, exit, complete], nullable: true}
+        device_id: {type: string, nullable: true}
+    User:
+      type: object
+      required: [id, full_name, phone, phone_verified, status]
+      properties:
+        id: {type: integer}
+        full_name: {type: string}
+        phone: {type: string}
+        email: {type: string, format: email, nullable: true}
+        avatar_url: {type: string, format: uri, nullable: true}
+        phone_verified: {type: boolean}
+        status: {type: string, enum: [active, suspended]}
+        courses_count: {type: integer}
+        watched_hours: {type: number}
+        unread_notifications_count: {type: integer}
+        created_at: {type: string, format: date-time}
+    AuthPendingResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+    AuthResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+    SuccessResponse:
+      type: object
+      required: [success, code, message, data]
+      properties:
+        success: {type: boolean, const: true}
+        code: {type: string}
+        message: {type: string}
+        data: {}
+        meta: {nullable: true}
+    ErrorResponse:
+      type: object
+      required: [success, code, message]
+      properties:
+        success: {type: boolean, const: false}
+        code: {type: string}
+        message: {type: string}
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: {type: string}
