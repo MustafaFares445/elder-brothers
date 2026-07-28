@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Models\Course;
 use App\Models\CourseSubscription;
 use App\Models\CourseVideo;
+use App\Services\PrivateCourseMediaService;
 
 final class CatalogResources
 {
@@ -15,19 +16,25 @@ final class CatalogResources
             'title' => $year->translated('title'),
             'subtitle' => $year->translated('subtitle'),
             'icon' => $year->icon,
-            'subjects_count' => $year->subjects_count ?? $year->subjects()->where('is_active', true)->count(),
+            'subjects_count' => $year->subjects_count
+                ?? $year->subjects()->where('is_active', true)->count(),
             'sort_order' => $year->sort_order,
         ];
     }
 
     public static function subject($subject): array
     {
+        $image = self::media($subject->image_url);
+
         return [
             'id' => $subject->id,
             'academic_year_id' => $subject->academic_year_id,
             'title' => $subject->translated('title'),
-            'image_url' => $subject->image_url,
-            'courses_count' => $subject->courses_count ?? $subject->courses()->where('status', 'published')->count(),
+            'image_url' => $image['url'],
+            'image_signature' => $image['signature'],
+            'image_expires_at' => $image['expires_at'],
+            'courses_count' => $subject->courses_count
+                ?? $subject->courses()->where('status', 'published')->count(),
             'sort_order' => $subject->sort_order,
         ];
     }
@@ -58,6 +65,7 @@ final class CatalogResources
             ? $course->subscriptions()->where('user_id', $user->id)->latest()->first()
             : null;
         $progress = self::courseProgress($course, $user);
+        $thumbnail = self::media($course->thumbnail_url);
 
         return [
             'id' => $course->id,
@@ -66,14 +74,17 @@ final class CatalogResources
             'title' => $course->translated('title'),
             'short_description' => $course->translated('short_description')
                 ?? str($course->translated('description'))->limit(140)->toString(),
-            'thumbnail_url' => $course->thumbnail_url,
+            'thumbnail_url' => $thumbnail['url'],
+            'thumbnail_signature' => $thumbnail['signature'],
+            'thumbnail_expires_at' => $thumbnail['expires_at'],
             'is_featured' => $course->is_featured,
             'is_subscribed' => $subscription?->isActive() ?? false,
             'subscription_status' => $subscription
                 ? ($subscription->isActive() ? 'active' : $subscription->status)
                 : null,
             'progress_percentage' => $progress,
-            'videos_count' => $course->videos_count ?? $course->videos()->where('status', 'ready')->count(),
+            'videos_count' => $course->videos_count
+                ?? $course->videos()->where('status', 'ready')->count(),
             'files_count' => $course->files_count ?? $course->files()->count(),
             'total_duration_seconds' => (int) ($course->total_duration_seconds
                 ?? $course->videos()->where('status', 'ready')->sum('duration_seconds')),
@@ -89,13 +100,16 @@ final class CatalogResources
         $percentage = $video->duration_seconds
             ? min(100, (int) round((($progress?->watched_seconds ?? 0) / $video->duration_seconds) * 100))
             : 0;
+        $thumbnail = self::media($video->thumbnail_url);
 
         return [
             'id' => $video->id,
             'course_id' => $video->course_id,
             'title' => $video->translated('title'),
             'lesson_label' => $video->translated('lesson_label'),
-            'thumbnail_url' => $video->thumbnail_url,
+            'thumbnail_url' => $thumbnail['url'],
+            'thumbnail_signature' => $thumbnail['signature'],
+            'thumbnail_expires_at' => $thumbnail['expires_at'],
             'duration_seconds' => $video->duration_seconds,
             'watched_seconds' => $progress?->watched_seconds ?? 0,
             'last_position_seconds' => $progress?->last_position_seconds ?? 0,
@@ -110,6 +124,10 @@ final class CatalogResources
 
     public static function file($file, bool $locked): array
     {
+        $download = $locked
+            ? self::media(null)
+            : self::media($file->file_path ?: $file->external_url);
+
         return [
             'id' => $file->id,
             'course_id' => $file->course_id,
@@ -121,8 +139,20 @@ final class CatalogResources
             'size_label' => self::sizeLabel($file->size_bytes),
             'is_downloadable' => $file->is_downloadable,
             'is_locked' => $locked,
+            'download_url' => $download['url'],
+            'signature' => $download['signature'],
+            'expires_at' => $download['expires_at'],
+            'storage' => $file->file_path ? 'private_local' : 'external',
             'sort_order' => $file->sort_order,
         ];
+    }
+
+    /**
+     * @return array{url:?string,signature:?string,expires_at:?string,is_private:bool}
+     */
+    public static function media(?string $path): array
+    {
+        return app(PrivateCourseMediaService::class)->temporaryMedia($path);
     }
 
     public static function courseProgress(Course $course, $user): int

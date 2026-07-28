@@ -55,18 +55,22 @@ class CourseVideosRelationManager extends RelationManager
                 ->columnSpanFull(),
             FileUpload::make('source_path')
                 ->label(__('dashboard.fields.source_path'))
-                ->disk(fn () => config('filesystems.private', 'local'))
-                ->directory('course-videos')
-                ->acceptedFileTypes(['video/mp4', 'application/vnd.apple.mpegurl'])
+                ->disk(fn () => config('filesystems.course_media', 'local'))
+                ->directory(fn () => 'courses/'.$this->getOwnerRecord()->getKey().'/videos')
+                ->visibility('private')
+                ->acceptedFileTypes(['video/mp4'])
                 ->required()
                 ->columnSpanFull(),
             TextInput::make('hls_manifest_path')
                 ->label(__('dashboard.fields.hls_manifest_path'))
                 ->maxLength(2048),
-            TextInput::make('thumbnail_url')
+            FileUpload::make('thumbnail_url')
                 ->label(__('dashboard.fields.thumbnail_url'))
-                ->url()
-                ->maxLength(2048),
+                ->disk(fn () => config('filesystems.course_media', 'local'))
+                ->directory(fn () => 'courses/'.$this->getOwnerRecord()->getKey().'/video-thumbnails')
+                ->visibility('private')
+                ->image()
+                ->maxSize(10240),
             TextInput::make('duration_seconds')
                 ->label(__('dashboard.fields.duration_seconds'))
                 ->integer()

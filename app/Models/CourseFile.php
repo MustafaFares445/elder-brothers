@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class CourseFile extends Model
 {
@@ -34,12 +33,12 @@ class CourseFile extends Model
     {
         static::saving(function (CourseFile $file): void {
             if ($file->file_path) {
-                $disk = Storage::disk(config('filesystems.private', 'local'));
+                $disk = Storage::disk(config('filesystems.course_media', 'local'));
 
                 if ($disk->exists($file->file_path)) {
                     $file->original_name = $file->original_name ?: basename($file->file_path);
-                    $file->mime_type = $disk->mimeType($file->file_path) ?: 'application/octet-stream';
-                    $file->extension = pathinfo($file->original_name, PATHINFO_EXTENSION) ?: 'bin';
+                    $file->mime_type = $disk->mimeType($file->file_path) ?: 'application/pdf';
+                    $file->extension = pathinfo($file->original_name, PATHINFO_EXTENSION) ?: 'pdf';
                     $file->size_bytes = $disk->size($file->file_path);
                 }
 
@@ -56,6 +55,12 @@ class CourseFile extends Model
                 $file->extension = pathinfo($file->original_name, PATHINFO_EXTENSION) ?: 'link';
                 $file->mime_type = $file->mime_type ?: 'application/octet-stream';
                 $file->size_bytes = $file->size_bytes ?: 0;
+            }
+        });
+
+        static::deleted(function (CourseFile $file): void {
+            if ($file->file_path) {
+                Storage::disk(config('filesystems.course_media', 'local'))->delete($file->file_path);
             }
         });
     }

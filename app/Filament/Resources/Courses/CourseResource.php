@@ -11,6 +11,7 @@ use App\Services\CoursePublishingService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -138,16 +139,22 @@ class CourseResource extends Resource
                         ]),
                 ])
                 ->columnSpanFull(),
-            Section::make()
+            Section::make(__('dashboard.sections.media'))
                 ->schema([
-                    TextInput::make('thumbnail_url')
+                    FileUpload::make('thumbnail_url')
                         ->label(__('dashboard.fields.thumbnail_url'))
-                        ->url()
-                        ->maxLength(2048),
-                    TextInput::make('hero_url')
+                        ->disk(fn () => config('filesystems.course_media', 'local'))
+                        ->directory('courses/thumbnails')
+                        ->visibility('private')
+                        ->image()
+                        ->maxSize(10240),
+                    FileUpload::make('hero_url')
                         ->label(__('dashboard.fields.hero_url'))
-                        ->url()
-                        ->maxLength(2048),
+                        ->disk(fn () => config('filesystems.course_media', 'local'))
+                        ->directory('courses/heroes')
+                        ->visibility('private')
+                        ->image()
+                        ->maxSize(20480),
                 ])
                 ->columns(2),
         ]);

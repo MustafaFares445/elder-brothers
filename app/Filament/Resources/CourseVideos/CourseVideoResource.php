@@ -6,6 +6,7 @@ use App\Filament\Resources\CourseVideos\Pages;
 use App\Models\Course;
 use App\Models\CourseVideo;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -34,7 +35,17 @@ class CourseVideoResource extends Resource
             TextInput::make('title.en')->required(),
             TextInput::make('lesson_label.ar'),
             TextInput::make('lesson_label.en'),
-            TextInput::make('source_path')->required(),
+            FileUpload::make('source_path')
+                ->disk(fn () => config('filesystems.course_media', 'local'))
+                ->directory('courses/videos')
+                ->visibility('private')
+                ->acceptedFileTypes(['video/mp4'])
+                ->required(),
+            FileUpload::make('thumbnail_url')
+                ->disk(fn () => config('filesystems.course_media', 'local'))
+                ->directory('courses/video-thumbnails')
+                ->visibility('private')
+                ->image(),
             TextInput::make('hls_manifest_path'),
             TextInput::make('duration_seconds')->integer()->required(),
             TextInput::make('sort_order')->integer()->required(),

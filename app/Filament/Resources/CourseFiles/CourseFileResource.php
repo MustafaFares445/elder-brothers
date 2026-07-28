@@ -6,6 +6,7 @@ use App\Filament\Resources\CourseFiles\Pages;
 use App\Models\Course;
 use App\Models\CourseFile;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -32,8 +33,14 @@ class CourseFileResource extends Resource
                 ->searchable(),
             TextInput::make('title.ar')->required(),
             TextInput::make('title.en')->required(),
-            TextInput::make('file_path'),
-            TextInput::make('external_url')->url(),
+            FileUpload::make('file_path')
+                ->disk(fn () => config('filesystems.course_media', 'local'))
+                ->directory('courses/pdfs')
+                ->visibility('private')
+                ->acceptedFileTypes(['application/pdf'])
+                ->maxSize(102400)
+                ->storeFileNamesIn('original_name')
+                ->required(),
             TextInput::make('sort_order')->integer()->required(),
             Toggle::make('is_downloadable'),
         ]);

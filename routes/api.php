@@ -28,6 +28,10 @@ Route::prefix('v1')->group(function (): void {
         Route::post('reset-password', [AuthController::class, 'resetPassword']);
     });
 
+    Route::match(['get', 'head'], 'videos/{video}/stream', [ContentController::class, 'stream'])
+        ->middleware('signed')
+        ->name('api.v1.videos.stream');
+
     Route::middleware(['auth:sanctum', 'active'])->group(function (): void {
         Route::post('auth/logout', [AuthController::class, 'logout']);
 

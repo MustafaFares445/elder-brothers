@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Course extends Model
 {
@@ -30,6 +31,17 @@ class Course extends Model
             'is_featured' => 'boolean',
             'published_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::deleted(function (Course $course): void {
+            $paths = array_filter([$course->thumbnail_url, $course->hero_url]);
+
+            if ($paths !== []) {
+                Storage::disk(config('filesystems.course_media', 'local'))->delete($paths);
+            }
+        });
     }
 
     public function subject(): BelongsTo

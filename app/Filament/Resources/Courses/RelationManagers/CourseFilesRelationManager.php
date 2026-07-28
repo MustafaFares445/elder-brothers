@@ -12,7 +12,6 @@ use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -49,15 +48,13 @@ class CourseFilesRelationManager extends RelationManager
                 ->columnSpanFull(),
             FileUpload::make('file_path')
                 ->label(__('dashboard.fields.file_path'))
-                ->disk(fn () => config('filesystems.private', 'local'))
-                ->directory('course-files')
-                ->required(fn (Get $get) => blank($get('external_url')))
-                ->columnSpanFull(),
-            TextInput::make('external_url')
-                ->label(__('dashboard.fields.external_url'))
-                ->url()
-                ->required(fn (Get $get) => blank($get('file_path')))
-                ->maxLength(2048)
+                ->disk(fn () => config('filesystems.course_media', 'local'))
+                ->directory(fn () => 'courses/'.$this->getOwnerRecord()->getKey().'/pdfs')
+                ->visibility('private')
+                ->acceptedFileTypes(['application/pdf'])
+                ->maxSize(102400)
+                ->storeFileNamesIn('original_name')
+                ->required()
                 ->columnSpanFull(),
             TextInput::make('sort_order')
                 ->label(__('dashboard.fields.sort_order'))

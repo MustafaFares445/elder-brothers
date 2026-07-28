@@ -2,7 +2,14 @@
 
 return [
     'default' => env('FILESYSTEM_DISK', 'local'),
+
+    // General private files.
     'private' => env('PRIVATE_FILESYSTEM_DISK', 'local'),
+
+    // Course thumbnails, hero images, videos, and PDFs are stored on the
+    // local disk rooted at storage/app/private by default.
+    'course_media' => env('COURSE_MEDIA_DISK', 'local'),
+
     'disks' => [
         'local' => [
             'driver' => 'local',
@@ -29,6 +36,7 @@ return [
             'throw' => false,
         ],
     ],
+
     'links' => [
         public_path('storage') => storage_path('app/public'),
     ],
