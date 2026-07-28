@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class QrRedemption extends Model
 {
@@ -20,5 +21,20 @@ class QrRedemption extends Model
         return [
             'redeemed_at' => 'datetime',
         ];
+    }
+
+    public function qrCode(): BelongsTo
+    {
+        return $this->belongsTo(SubscriptionQrCode::class, 'subscription_qr_code_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function subscription(): BelongsTo
+    {
+        return $this->belongsTo(CourseSubscription::class, 'course_subscription_id');
     }
 }

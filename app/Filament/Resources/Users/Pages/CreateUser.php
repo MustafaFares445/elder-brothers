@@ -8,4 +8,13 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateUser extends CreateRecord
 {
     protected static string $resource = UserResource::class;
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $data['is_admin'] = true;
+        $data['status'] = 'active';
+        $data['phone_verified_at'] = now();
+
+        return $data;
+    }
 }

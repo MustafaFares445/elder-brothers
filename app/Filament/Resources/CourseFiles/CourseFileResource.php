@@ -3,14 +3,10 @@
 namespace App\Filament\Resources\CourseFiles;
 
 use App\Filament\Resources\CourseFiles\Pages;
+use App\Models\Course;
 use App\Models\CourseFile;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
@@ -23,20 +19,23 @@ class CourseFileResource extends Resource
 {
     protected static ?string $model = CourseFile::class;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Select::make('course_id')->relationship('course', 'id')->getOptionLabelFromRecordUsing(fn ($record) => $record->localizedTitle('en'))->required()->searchable(),
-TextInput::make('title.ar')->label('Arabic title')->required(),
-TextInput::make('title.en')->label('English title')->required(),
-TextInput::make('file_path'),
-TextInput::make('external_url')->url(),
-TextInput::make('original_name')->required(),
-TextInput::make('mime_type')->required(),
-TextInput::make('extension')->required(),
-TextInput::make('size_bytes')->numeric()->required(),
-TextInput::make('sort_order')->numeric()->required(),
-Toggle::make('is_downloadable')->default(true),
+            Select::make('course_id')
+                ->options(fn () => Course::query()->get()->mapWithKeys(
+                    fn (Course $course) => [$course->id => $course->localized('title')],
+                ))
+                ->required()
+                ->searchable(),
+            TextInput::make('title.ar')->required(),
+            TextInput::make('title.en')->required(),
+            TextInput::make('file_path'),
+            TextInput::make('external_url')->url(),
+            TextInput::make('sort_order')->integer()->required(),
+            Toggle::make('is_downloadable'),
         ]);
     }
 
@@ -44,17 +43,17 @@ Toggle::make('is_downloadable')->default(true),
     {
         return $table
             ->columns([
-                TextColumn::make('title.en')->label('Title')->searchable(),
-TextColumn::make('course.title.en')->label('Course'),
-TextColumn::make('extension')->badge(),
-TextColumn::make('size_bytes')->numeric(),
-TextColumn::make('sort_order')->sortable(),
-IconColumn::make('is_downloadable')->boolean(),
+                TextColumn::make('title.ar')->label(__('dashboard.fields.title')),
+                TextColumn::make('course.title.ar')->label(__('dashboard.fields.course')),
+                TextColumn::make('original_name')->label(__('dashboard.fields.original_name')),
+                IconColumn::make('is_downloadable')->boolean(),
             ])
-            ->recordActions([EditAction::make()])
-            ->toolbarActions([
-                BulkActionGroup::make([DeleteBulkAction::make()]),
-            ]);
+            ->recordActions([EditAction::make()]);
+    }
+
+    public static function canViewAny(): bool
+    {
+        return false;
     }
 
     public static function getPages(): array
