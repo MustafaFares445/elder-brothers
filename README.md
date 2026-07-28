@@ -37,6 +37,39 @@ php artisan serve
 
 ## Dashboard administrator
 
+### Create an administrator with Artisan
+
+Interactive mode:
+
+```bash
+php artisan admin:create
+```
+
+Non-interactive production mode:
+
+```bash
+php artisan admin:create \
+  --name="مدير النظام" \
+  --email="admin@example.com" \
+  --phone="+963900000000" \
+  --password="use-a-strong-password"
+```
+
+To promote or update an existing user with the same phone or email:
+
+```bash
+php artisan admin:create \
+  --name="مدير النظام" \
+  --email="admin@example.com" \
+  --phone="+963900000000" \
+  --password="use-a-strong-password" \
+  --force
+```
+
+When `--password` is omitted in non-interactive mode, the command generates a strong password and displays it once.
+
+### Create an administrator from environment variables
+
 Set these variables before running `DashboardSeeder`:
 
 ```env
