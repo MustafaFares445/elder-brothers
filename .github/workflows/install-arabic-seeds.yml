@@ -1,0 +1,57 @@
+name: install-arabic-seeds
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.arabic-seeds-install/**'
+      - '.github/workflows/install-arabic-seeds.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  install-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Extract Arabic seed implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .arabic-seeds-install/part-* | base64 --decode > /tmp/arabic-seeds.tar.xz
+          echo "7a35761c6e61520ff40010614ac7d61524dcfb60d31795d8b75f755fda28a911  /tmp/arabic-seeds.tar.xz" | sha256sum --check
+          tar -xJf /tmp/arabic-seeds.tar.xz -C .
+          rm -rf .arabic-seeds-install
+          rm -f .github/workflows/install-arabic-seeds.yml
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Verify migrations and Arabic seeds
+        shell: bash
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          touch database/database.sqlite
+          php artisan migrate:fresh --seed --force
+          php artisan test --filter=ArabicDemoSeederTest
+
+      - name: Commit implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "feat: add complete Arabic demo seeds"
+          git push origin HEAD:main
