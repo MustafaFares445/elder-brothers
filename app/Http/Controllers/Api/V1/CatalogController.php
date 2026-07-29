@@ -59,7 +59,7 @@ class CatalogController extends Controller
             ->orderBy('sort_order');
 
         if ($request->filled('q')) {
-            $query->whereJsonContains('title->'.app()->getLocale(), $request->string('q'));
+            $query->whereJsonContains('title->ar', $request->string('q'));
         }
 
         $paginator = $query->paginate(min(50, $request->integer('per_page', 15)));
@@ -80,7 +80,7 @@ class CatalogController extends Controller
             ->orderBy('sort_order');
 
         if ($request->filled('q')) {
-            $query->whereJsonContains('title->'.app()->getLocale(), $request->string('q'));
+            $query->whereJsonContains('title->ar', $request->string('q'));
         }
 
         $paginator = $query->paginate(min(50, $request->integer('per_page', 15)));
@@ -143,13 +143,7 @@ class CatalogController extends Controller
         abort_unless($course->status === 'published', 404);
 
         $course
-            ->load([
-                'subject.academicYear',
-                'videos' => fn ($query) => $query
-                    ->where('is_preview', true)
-                    ->where('status', 'ready')
-                    ->orderBy('sort_order'),
-            ])
+            ->load('subject.academicYear')
             ->loadCount([
                 'videos' => fn ($query) => $query->where('status', 'ready'),
                 'files',
@@ -162,6 +156,7 @@ class CatalogController extends Controller
             ->where('user_id', $request->user()->id)
             ->latest()
             ->first();
+        $hasAccess = $subscription?->isActive() ?? false;
         $progress = CatalogResources::courseProgress($course, $request->user());
         $hero = CatalogResources::media($course->hero_url);
 
@@ -175,17 +170,14 @@ class CatalogController extends Controller
                 'subject' => CatalogResources::subject($course->subject),
                 'academic_year' => CatalogResources::year($course->subject->academicYear),
                 'subscription' => CatalogResources::subscription($subscription, $progress),
-                'first_playable_video_id' => $course->videos()
-                    ->where('status', 'ready')
-                    ->where(fn ($query) => $subscription?->isActive()
-                        ? $query
-                        : $query->where('is_preview', true))
-                    ->orderBy('sort_order')
-                    ->value('id'),
-                'preview_videos' => $course->videos->map(
-                    fn ($video) => CatalogResources::video($video, $request->user(), false),
-                ),
-                'can_view_full_content' => $subscription?->isActive() ?? false,
+                'first_playable_video_id' => $hasAccess
+                    ? $course->videos()
+                        ->where('status', 'ready')
+                        ->orderBy('sort_order')
+                        ->value('id')
+                    : null,
+                'preview_videos' => [],
+                'can_view_full_content' => $hasAccess,
             ],
         ));
     }
@@ -212,7 +204,7 @@ class CatalogController extends Controller
             ),
             [
                 'course' => CatalogResources::course($subscription->course, $request->user()),
-                'activated_by' => $subscription->source,
+                'activated_by' => 'qr',
                 'redemption' => null,
                 'created_at' => $subscription->created_at->toIso8601String(),
                 'updated_at' => $subscription->updated_at->toIso8601String(),
@@ -226,10 +218,6 @@ class CatalogController extends Controller
 
         if ($request->filled('status')) {
             $query->where('status', $request->string('status'));
-        }
-
-        if ($request->filled('source')) {
-            $query->where('source', $request->string('source'));
         }
 
         $paginator = $query->paginate(min(50, $request->integer('per_page', 15)));
@@ -271,7 +259,7 @@ class CatalogController extends Controller
         }
 
         if ($request->filled('q')) {
-            $query->whereJsonContains('title->'.app()->getLocale(), $request->string('q'));
+            $query->whereJsonContains('title->ar', $request->string('q'));
         }
 
         return $query->latest('published_at');
