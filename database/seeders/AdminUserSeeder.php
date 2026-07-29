@@ -9,25 +9,28 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $name = env('ADMIN_NAME');
-        $phone = env('ADMIN_PHONE');
-        $email = env('ADMIN_EMAIL');
-        $password = env('ADMIN_PASSWORD');
+        $name = env('ADMIN_NAME', 'مدير النظام');
+        $phone = env('ADMIN_PHONE', '+963900000000');
+        $email = env('ADMIN_EMAIL', 'admin@elder.local');
+        $password = env('ADMIN_PASSWORD', 'Password123!');
 
-        if (! $name || ! $phone || ! $email || ! $password) {
-            return;
-        }
+        $user = User::query()
+            ->where('phone', $phone)
+            ->orWhere('email', $email)
+            ->first() ?? new User();
 
-        User::query()->updateOrCreate(
-            ['phone' => $phone],
-            [
-                'full_name' => $name,
-                'email' => $email,
-                'password' => $password,
-                'phone_verified_at' => now(),
-                'status' => 'active',
-                'is_admin' => true,
-            ],
-        );
+        $user->fill([
+            'full_name' => $name,
+            'phone' => $phone,
+            'email' => $email,
+            'password' => $password,
+            'phone_verified_at' => $user->phone_verified_at ?? now(),
+            'status' => 'active',
+            'is_admin' => true,
+            'suspended_at' => null,
+            'suspension_reason' => null,
+        ]);
+
+        $user->save();
     }
 }
