@@ -5,11 +5,8 @@ namespace App\Filament\Widgets;
 use App\Models\Course;
 use App\Models\CourseSubscription;
 use App\Models\CourseVideo;
-use App\Models\QrRedemption;
 use App\Models\SubscriptionQrCode;
-use App\Models\SupportRequest;
 use App\Models\User;
-use App\Models\VideoProgress;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -39,7 +36,10 @@ class PlatformStats extends StatsOverviewWidget
         $courseScope = fn (Builder $query): Builder => $query
             ->when($courseId, fn (Builder $query): Builder => $query->whereKey($courseId))
             ->when($subjectId, fn (Builder $query): Builder => $query->where('subject_id', $subjectId))
-            ->when($academicYearId, fn (Builder $query): Builder => $query->whereHas('subject', fn (Builder $query): Builder => $query->where('academic_year_id', $academicYearId)));
+            ->when($academicYearId, fn (Builder $query): Builder => $query->whereHas(
+                'subject',
+                fn (Builder $query): Builder => $query->where('academic_year_id', $academicYearId),
+            ));
 
         $activeSubscriptions = CourseSubscription::query()
             ->where('status', 'active')
@@ -51,7 +51,6 @@ class PlatformStats extends StatsOverviewWidget
             ->when($endDate, fn (Builder $query): Builder => $query->whereDate('created_at', '<=', $endDate))
             ->when($courseId, fn (Builder $query): Builder => $query->where('course_id', $courseId))
             ->when($subjectId || $academicYearId, fn (Builder $query): Builder => $query->whereHas('course', $courseScope));
-
 
         $publishedCourses = Course::query()->where('status', 'published');
         $draftCourses = Course::query()->where('status', 'draft');
@@ -69,61 +68,39 @@ class PlatformStats extends StatsOverviewWidget
                     ->whereBetween('expires_at', [now(), now()->addDays(7)])
                     ->count(),
             ),
-            Stat::make(
-                __('dashboard.widgets.published_courses'),
-                $publishedCourses->count(),
-            ),
-            Stat::make(
-                __('dashboard.widgets.draft_courses'),
-                $draftCourses->count(),
-            ),
+            Stat::make(__('dashboard.widgets.published_courses'), $publishedCourses->count()),
+            Stat::make(__('dashboard.widgets.draft_courses'), $draftCourses->count()),
             Stat::make(
                 __('dashboard.widgets.ready_videos'),
                 CourseVideo::query()
                     ->where('status', 'ready')
-                    ->when($courseId || $subjectId || $academicYearId, fn (Builder $query): Builder => $query->whereHas('course', $courseScope))
+                    ->when(
+                        $courseId || $subjectId || $academicYearId,
+                        fn (Builder $query): Builder => $query->whereHas('course', $courseScope),
+                    )
                     ->count(),
             ),
             Stat::make(
                 __('dashboard.widgets.failed_videos'),
                 CourseVideo::query()
                     ->where('status', 'failed')
-                    ->when($courseId || $subjectId || $academicYearId, fn (Builder $query): Builder => $query->whereHas('course', $courseScope))
+                    ->when(
+                        $courseId || $subjectId || $academicYearId,
+                        fn (Builder $query): Builder => $query->whereHas('course', $courseScope),
+                    )
                     ->count(),
-            ),
-            Stat::make(
-                __('dashboard.widgets.watch_hours'),
-                number_format(
-                    VideoProgress::query()
-                        ->when($startDate, fn (Builder $query): Builder => $query->whereDate('last_watched_at', '>=', $startDate))
-                        ->when($endDate, fn (Builder $query): Builder => $query->whereDate('last_watched_at', '<=', $endDate))
-                        ->when($courseId || $subjectId || $academicYearId, fn (Builder $query): Builder => $query->whereHas('video.course', $courseScope))
-                        ->sum('watched_seconds') / 3600,
-                    1,
-                ),
             ),
             Stat::make(
                 __('dashboard.widgets.active_qr_codes'),
                 SubscriptionQrCode::query()
                     ->where('status', 'active')
+                    ->where('redemptions_count', 0)
+                    ->where('expires_at', '>', now())
                     ->when($courseId, fn (Builder $query): Builder => $query->where('course_id', $courseId))
-                    ->when($subjectId || $academicYearId, fn (Builder $query): Builder => $query->whereHas('course', $courseScope))
-                    ->count(),
-            ),
-            Stat::make(
-                __('dashboard.widgets.qr_redemptions'),
-                QrRedemption::query()
-                    ->when($startDate, fn (Builder $query): Builder => $query->whereDate('redeemed_at', '>=', $startDate))
-                    ->when($endDate, fn (Builder $query): Builder => $query->whereDate('redeemed_at', '<=', $endDate))
-                    ->when($courseId || $subjectId || $academicYearId, fn (Builder $query): Builder => $query->whereHas('subscription.course', $courseScope))
-                    ->count(),
-            ),
-            Stat::make(
-                __('dashboard.widgets.open_support'),
-                SupportRequest::query()
-                    ->whereIn('status', ['open', 'in_progress'])
-                    ->when($startDate, fn (Builder $query): Builder => $query->whereDate('created_at', '>=', $startDate))
-                    ->when($endDate, fn (Builder $query): Builder => $query->whereDate('created_at', '<=', $endDate))
+                    ->when(
+                        $subjectId || $academicYearId,
+                        fn (Builder $query): Builder => $query->whereHas('course', $courseScope),
+                    )
                     ->count(),
             ),
         ];
