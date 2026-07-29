@@ -4,12 +4,12 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Dashboard;
 use App\Filament\Resources\AcademicYears\AcademicYearResource;
-use App\Filament\Resources\Admins\AdminResource;
 use App\Filament\Resources\Courses\CourseResource;
 use App\Filament\Resources\CourseSubscriptions\CourseSubscriptionResource;
 use App\Filament\Resources\Students\StudentResource;
 use App\Filament\Resources\Subjects\SubjectResource;
 use App\Filament\Resources\SubscriptionQrCodes\SubscriptionQrCodeResource;
+use App\Filament\Resources\Users\UserResource;
 use App\Filament\Widgets\ExpiringSubscriptions;
 use App\Filament\Widgets\PlatformStats;
 use App\Filament\Widgets\ProblemVideos;
@@ -54,7 +54,7 @@ class AdminPanelProvider extends PanelProvider
                 StudentResource::class,
                 CourseSubscriptionResource::class,
                 SubscriptionQrCodeResource::class,
-                AdminResource::class,
+                UserResource::class,
             ])
             ->pages([
                 Dashboard::class,
