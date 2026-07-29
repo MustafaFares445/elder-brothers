@@ -20,7 +20,7 @@ class QrRedemptionChart extends ChartWidget
 
     protected ?string $maxHeight = '300px';
 
-    protected function getHeading(): ?string
+    public function getHeading(): ?string
     {
         return __('dashboard.widgets.qr_redemptions');
     }
