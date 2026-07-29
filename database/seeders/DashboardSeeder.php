@@ -9,7 +9,6 @@ class DashboardSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            PlatformSettingSeeder::class,
             AdminUserSeeder::class,
         ]);
     }
