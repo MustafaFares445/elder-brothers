@@ -3,16 +3,17 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Dashboard;
-use App\Filament\Pages\PlatformSettings;
-use App\Filament\Pages\SendNotification;
-use App\Filament\Widgets\EngagementChart;
+use App\Filament\Resources\AcademicYears\AcademicYearResource;
+use App\Filament\Resources\Admins\AdminResource;
+use App\Filament\Resources\Courses\CourseResource;
+use App\Filament\Resources\CourseSubscriptions\CourseSubscriptionResource;
+use App\Filament\Resources\Students\StudentResource;
+use App\Filament\Resources\Subjects\SubjectResource;
+use App\Filament\Resources\SubscriptionQrCodes\SubscriptionQrCodeResource;
 use App\Filament\Widgets\ExpiringSubscriptions;
-use App\Filament\Widgets\LatestSupportRequests;
 use App\Filament\Widgets\PlatformStats;
 use App\Filament\Widgets\ProblemVideos;
-use App\Filament\Widgets\QrRedemptionChart;
 use App\Filament\Widgets\RegistrationChart;
-use App\Filament\Widgets\SubscriptionSourcesChart;
 use App\Http\Middleware\SetDashboardLocale;
 use Filament\Enums\ThemeMode;
 use Filament\Http\Middleware\Authenticate;
@@ -40,36 +41,34 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->profile()
-            ->brandName(__('dashboard.brand'))
+            ->brandName('الأخ الأكبر')
             ->colors([
                 'primary' => Color::Amber,
             ])
             ->defaultThemeMode(ThemeMode::Light)
             ->sidebarCollapsibleOnDesktop()
-            ->discoverResources(
-                in: app_path('Filament/Resources'),
-                for: 'App\\Filament\\Resources',
-            )
+            ->resources([
+                AcademicYearResource::class,
+                SubjectResource::class,
+                CourseResource::class,
+                StudentResource::class,
+                CourseSubscriptionResource::class,
+                SubscriptionQrCodeResource::class,
+                AdminResource::class,
+            ])
             ->pages([
                 Dashboard::class,
-                SendNotification::class,
-                PlatformSettings::class,
             ])
             ->widgets([
                 PlatformStats::class,
                 RegistrationChart::class,
-                SubscriptionSourcesChart::class,
-                EngagementChart::class,
-                QrRedemptionChart::class,
                 ExpiringSubscriptions::class,
-                LatestSupportRequests::class,
                 ProblemVideos::class,
             ])
             ->navigationGroups([
                 NavigationGroup::make()->label(__('dashboard.navigation.content')),
                 NavigationGroup::make()->label(__('dashboard.navigation.students')),
                 NavigationGroup::make()->label(__('dashboard.navigation.subscriptions')),
-                NavigationGroup::make()->label(__('dashboard.navigation.communication')),
                 NavigationGroup::make()->label(__('dashboard.navigation.system')),
             ])
             ->middleware([
