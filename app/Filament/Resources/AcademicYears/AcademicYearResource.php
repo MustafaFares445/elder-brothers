@@ -11,8 +11,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Tabs;
-use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -47,42 +45,23 @@ class AcademicYearResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Tabs::make('translations')
-                ->tabs([
-                    Tab::make(__('dashboard.fields.arabic'))
-                        ->schema([
-                            TextInput::make('title.ar')
-                                ->label(__('dashboard.fields.title'))
-                                ->required()
-                                ->maxLength(191),
-                            TextInput::make('subtitle.ar')
-                                ->label(__('dashboard.fields.subtitle'))
-                                ->maxLength(255),
-                        ]),
-                    Tab::make(__('dashboard.fields.english'))
-                        ->schema([
-                            TextInput::make('title.en')
-                                ->label(__('dashboard.fields.title'))
-                                ->required()
-                                ->maxLength(191)
-                                ->extraInputAttributes(['dir' => 'ltr']),
-                            TextInput::make('subtitle.en')
-                                ->label(__('dashboard.fields.subtitle'))
-                                ->maxLength(255)
-                                ->extraInputAttributes(['dir' => 'ltr']),
-                        ]),
-                ])
-                ->columnSpanFull(),
             Section::make()
                 ->schema([
+                    TextInput::make('title.ar')
+                        ->label(__('dashboard.fields.title'))
+                        ->required()
+                        ->maxLength(191),
+                    TextInput::make('subtitle.ar')
+                        ->label(__('dashboard.fields.subtitle'))
+                        ->maxLength(255),
                     Select::make('icon')
                         ->label(__('dashboard.fields.icon'))
                         ->options([
-                            'school' => 'School',
-                            'menu_book' => 'Menu Book',
-                            'history_edu' => 'History Education',
-                            'workspace_premium' => 'Workspace Premium',
-                            'auto_stories' => 'Auto Stories',
+                            'school' => 'مدرسة',
+                            'menu_book' => 'كتاب',
+                            'history_edu' => 'تعليم',
+                            'workspace_premium' => 'تميز',
+                            'auto_stories' => 'محتوى',
                         ])
                         ->searchable(),
                     TextInput::make('sort_order')
@@ -95,7 +74,8 @@ class AcademicYearResource extends Resource
                         ->label(__('dashboard.fields.active'))
                         ->default(true),
                 ])
-                ->columns(3),
+                ->columns(2)
+                ->columnSpanFull(),
         ]);
     }
 
@@ -108,10 +88,6 @@ class AcademicYearResource extends Resource
                     ->label(__('dashboard.fields.title'))
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('title.en')
-                    ->label(__('dashboard.fields.english'))
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('subjects_count')
                     ->label(__('dashboard.resources.subjects'))
                     ->numeric()
