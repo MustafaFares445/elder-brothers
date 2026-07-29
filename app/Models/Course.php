@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Course extends Model
 {
@@ -35,6 +36,23 @@ class Course extends Model
 
     protected static function booted(): void
     {
+        static::creating(function (Course $course): void {
+            if (blank($course->slug)) {
+                $title = data_get($course->title, 'ar', '');
+                $base = Str::slug((string) $title);
+
+                if (blank($base)) {
+                    $base = 'course';
+                }
+
+                do {
+                    $slug = $base.'-'.Str::lower(Str::random(8));
+                } while (static::query()->where('slug', $slug)->exists());
+
+                $course->slug = $slug;
+            }
+        });
+
         static::deleted(function (Course $course): void {
             $paths = array_filter([$course->thumbnail_url, $course->hero_url]);
 
@@ -66,10 +84,11 @@ class Course extends Model
 
     public function localized(string $field, ?string $locale = null): ?string
     {
-        $values = $this->{$field};
+        $values = (array) $this->{$field};
         $locale ??= app()->getLocale();
 
         return $values[$locale]
+            ?? $values['ar']
             ?? $values[config('app.fallback_locale')]
             ?? null;
     }
