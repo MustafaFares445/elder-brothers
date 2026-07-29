@@ -2,18 +2,14 @@
 
 namespace App\Filament\Resources\Courses\RelationManagers;
 
-use App\Models\CourseFile;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Components\Tabs;
-use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -29,21 +25,11 @@ class CourseFilesRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         return $schema->components([
-            Tabs::make('translations')
-                ->tabs([
-                    Tab::make(__('dashboard.fields.arabic'))
-                        ->schema([
-                            TextInput::make('title.ar')
-                                ->label(__('dashboard.fields.title'))
-                                ->required(),
-                        ]),
-                    Tab::make(__('dashboard.fields.english'))
-                        ->schema([
-                            TextInput::make('title.en')
-                                ->label(__('dashboard.fields.title'))
-                                ->required()
-                                ->extraInputAttributes(['dir' => 'ltr']),
-                        ]),
+            Section::make()
+                ->schema([
+                    TextInput::make('title.ar')
+                        ->label(__('dashboard.fields.title'))
+                        ->required(),
                 ])
                 ->columnSpanFull(),
             FileUpload::make('file_path')
@@ -62,9 +48,6 @@ class CourseFilesRelationManager extends RelationManager
                 ->minValue(0)
                 ->required()
                 ->default(0),
-            Toggle::make('is_downloadable')
-                ->label(__('dashboard.fields.downloadable'))
-                ->default(true),
         ]);
     }
 
@@ -84,12 +67,9 @@ class CourseFilesRelationManager extends RelationManager
                 TextColumn::make('sort_order')
                     ->label(__('dashboard.fields.sort_order'))
                     ->numeric(),
-                IconColumn::make('is_downloadable')
-                    ->label(__('dashboard.fields.downloadable'))
-                    ->boolean(),
             ])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()->label('إضافة ملف'),
             ])
             ->recordActions([
                 EditAction::make(),
