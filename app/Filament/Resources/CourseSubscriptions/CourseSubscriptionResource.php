@@ -3,16 +3,11 @@
 namespace App\Filament\Resources\CourseSubscriptions;
 
 use App\Filament\Resources\CourseSubscriptions\Pages;
-use App\Models\Course;
 use App\Models\CourseSubscription;
-use App\Models\User;
 use App\Services\SubscriptionService;
 use Filament\Actions\Action;
-use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -43,54 +38,6 @@ class CourseSubscriptionResource extends Resource
         return __('dashboard.resources.subscriptions');
     }
 
-    public static function form(Schema $schema): Schema
-    {
-        return $schema->components([
-            Select::make('user_id')
-                ->label(__('dashboard.fields.user'))
-                ->options(fn () => User::query()
-                    ->where('is_admin', false)
-                    ->where('status', 'active')
-                    ->orderBy('full_name')
-                    ->pluck('full_name', 'id'))
-                ->required()
-                ->searchable(),
-            Select::make('course_id')
-                ->label(__('dashboard.fields.course'))
-                ->options(fn () => Course::query()
-                    ->whereIn('status', ['draft', 'published'])
-                    ->get()
-                    ->mapWithKeys(fn (Course $course) => [
-                        $course->id => $course->localized('title'),
-                    ]))
-                ->required()
-                ->searchable(),
-            Select::make('source')
-                ->label(__('dashboard.fields.source'))
-                ->options([
-                    'admin' => __('dashboard.statuses.admin'),
-                    'qr' => __('dashboard.statuses.qr'),
-                ])
-                ->default('admin')
-                ->required(),
-            DateTimePicker::make('starts_at')
-                ->label(__('dashboard.fields.starts_at'))
-                ->default(now())
-                ->required(),
-            DateTimePicker::make('expires_at')
-                ->label(__('dashboard.fields.expires_at')),
-            Select::make('status')
-                ->label(__('dashboard.fields.status'))
-                ->options([
-                    'active' => __('dashboard.statuses.active'),
-                    'expired' => __('dashboard.statuses.expired'),
-                    'revoked' => __('dashboard.statuses.revoked'),
-                ])
-                ->default('active')
-                ->required(),
-        ]);
-    }
-
     public static function table(Table $table): Table
     {
         return $table
@@ -103,10 +50,6 @@ class CourseSubscriptionResource extends Resource
                 TextColumn::make('course.title.ar')
                     ->label(__('dashboard.fields.course'))
                     ->searchable(),
-                TextColumn::make('source')
-                    ->label(__('dashboard.fields.source'))
-                    ->formatStateUsing(fn (string $state) => __("dashboard.statuses.{$state}"))
-                    ->badge(),
                 TextColumn::make('status')
                     ->label(__('dashboard.fields.status'))
                     ->formatStateUsing(fn (string $state) => __("dashboard.statuses.{$state}"))
@@ -118,16 +61,39 @@ class CourseSubscriptionResource extends Resource
                     }),
                 TextColumn::make('starts_at')
                     ->label(__('dashboard.fields.starts_at'))
-                    ->dateTime(),
+                    ->formatStateUsing(fn ($state) => $state
+                        ? $state->locale('ar')->translatedFormat('d F Y')
+                        : 'غير محدد'),
                 TextColumn::make('expires_at')
                     ->label(__('dashboard.fields.expires_at'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => $state
+                        ? $state->locale('ar')->translatedFormat('d F Y')
+                        : 'بدون تاريخ انتهاء')
                     ->sortable(),
                 TextColumn::make('days_remaining')
                     ->label(__('dashboard.fields.days_remaining'))
-                    ->getStateUsing(fn (CourseSubscription $record) => $record->expires_at
-                        ? max(0, now()->diffInDays($record->expires_at, false))
-                        : '∞'),
+                    ->state(function (CourseSubscription $record): string {
+                        if (! $record->expires_at) {
+                            return 'غير محدد';
+                        }
+
+                        if ($record->expires_at->isPast()) {
+                            return 'منتهي';
+                        }
+
+                        $days = (int) now()->startOfDay()->diffInDays(
+                            $record->expires_at->copy()->startOfDay(),
+                        );
+
+                        return $days === 0 ? 'ينتهي اليوم' : $days.' يوم';
+                    })
+                    ->badge()
+                    ->color(fn (string $state): string => match (true) {
+                        $state === 'منتهي' => 'danger',
+                        $state === 'ينتهي اليوم' => 'danger',
+                        str_contains($state, 'يوم') && (int) $state <= 7 => 'warning',
+                        default => 'gray',
+                    }),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -136,12 +102,6 @@ class CourseSubscriptionResource extends Resource
                         'active' => __('dashboard.statuses.active'),
                         'expired' => __('dashboard.statuses.expired'),
                         'revoked' => __('dashboard.statuses.revoked'),
-                    ]),
-                SelectFilter::make('source')
-                    ->label(__('dashboard.fields.source'))
-                    ->options([
-                        'admin' => __('dashboard.statuses.admin'),
-                        'qr' => __('dashboard.statuses.qr'),
                     ]),
                 Filter::make('expires_soon')
                     ->label(__('dashboard.widgets.expiring_subscriptions'))
@@ -154,6 +114,7 @@ class CourseSubscriptionResource extends Resource
                     ->label(__('dashboard.actions.extend'))
                     ->form([
                         TextInput::make('days')
+                            ->label('عدد أيام التمديد')
                             ->integer()
                             ->minValue(1)
                             ->maxValue(3650)
@@ -177,6 +138,11 @@ class CourseSubscriptionResource extends Resource
             ->defaultSort('created_at', 'desc');
     }
 
+    public static function canCreate(): bool
+    {
+        return false;
+    }
+
     public static function canDelete($record): bool
     {
         return false;
@@ -186,7 +152,6 @@ class CourseSubscriptionResource extends Resource
     {
         return [
             'index' => Pages\ListCourseSubscriptions::route('/'),
-            'create' => Pages\CreateCourseSubscription::route('/create'),
         ];
     }
 }
