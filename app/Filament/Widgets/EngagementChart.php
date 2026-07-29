@@ -20,7 +20,7 @@ class EngagementChart extends ChartWidget
 
     protected ?string $maxHeight = '320px';
 
-    protected function getHeading(): ?string
+    public function getHeading(): ?string
     {
         return __('dashboard.widgets.top_watched_courses');
     }
