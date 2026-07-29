@@ -271,10 +271,33 @@ class RealCourseMediaSeeder extends Seeder
             throw new RuntimeException("Unable to read seeded media asset: {$filename}");
         }
 
-        $contents = base64_decode(preg_replace('/\s+/', '', $encoded) ?: '', true);
+        // Git checkouts, editors, and deployment tools may add a BOM, line breaks,
+        // or other invisible characters. Keep only the Base64 alphabet, then
+        // restore correct padding before strict decoding.
+        $normalized = preg_replace('/[^A-Za-z0-9+\/]/', '', $encoded);
 
-        if ($contents === false || $contents === '') {
+        if (! is_string($normalized) || $normalized === '') {
             throw new RuntimeException("Invalid seeded media asset: {$filename}");
+        }
+
+        $remainder = strlen($normalized) % 4;
+
+        if ($remainder !== 0) {
+            $normalized .= str_repeat('=', 4 - $remainder);
+        }
+
+        $contents = base64_decode($normalized, true);
+
+        if (! is_string($contents) || $contents === '') {
+            throw new RuntimeException("Invalid seeded media asset: {$filename}");
+        }
+
+        if (str_ends_with($filename, '.mp4.base64') && substr($contents, 4, 4) !== 'ftyp') {
+            throw new RuntimeException("Decoded seeded video is not a valid MP4 asset: {$filename}");
+        }
+
+        if (str_ends_with($filename, '.pdf.base64') && ! str_starts_with($contents, '%PDF-')) {
+            throw new RuntimeException("Decoded seeded document is not a valid PDF asset: {$filename}");
         }
 
         return $contents;
