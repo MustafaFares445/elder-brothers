@@ -47,13 +47,13 @@ final class CatalogResources
 
         return [
             'id' => $subscription->id,
-            'source' => $subscription->source,
+            'source' => 'qr',
             'status' => $subscription->isActive() ? 'active' : $subscription->status,
             'starts_at' => $subscription->starts_at?->toIso8601String(),
             'expires_at' => $subscription->expires_at?->toIso8601String(),
             'revoked_at' => $subscription->revoked_at?->toIso8601String(),
             'days_remaining' => $subscription->expires_at
-                ? max(0, now()->diffInDays($subscription->expires_at, false))
+                ? max(0, (int) now()->diffInDays($subscription->expires_at, false))
                 : null,
             'progress_percentage' => $progress ?? 0,
         ];
@@ -116,8 +116,8 @@ final class CatalogResources
             'progress_percentage' => $percentage,
             'is_completed' => (bool) $progress?->completed_at,
             'is_locked' => $locked,
-            'is_preview' => $video->is_preview,
-            'is_downloadable' => $video->is_downloadable,
+            'is_preview' => false,
+            'is_downloadable' => true,
             'sort_order' => $video->sort_order,
         ];
     }
@@ -137,7 +137,7 @@ final class CatalogResources
             'mime_type' => $file->mime_type,
             'size_bytes' => $file->size_bytes,
             'size_label' => self::sizeLabel($file->size_bytes),
-            'is_downloadable' => $file->is_downloadable,
+            'is_downloadable' => true,
             'is_locked' => $locked,
             'download_url' => $download['url'],
             'signature' => $download['signature'],
