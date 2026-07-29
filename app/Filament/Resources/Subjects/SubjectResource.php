@@ -11,8 +11,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Tabs;
-use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -48,49 +47,40 @@ class SubjectResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Select::make('academic_year_id')
-                ->label(__('dashboard.fields.academic_year'))
-                ->options(fn () => AcademicYear::query()
-                    ->orderBy('sort_order')
-                    ->get()
-                    ->mapWithKeys(fn (AcademicYear $year) => [
-                        $year->id => $year->localized('title', app()->getLocale()),
-                    ]))
-                ->required()
-                ->searchable(),
-            Tabs::make('translations')
-                ->tabs([
-                    Tab::make(__('dashboard.fields.arabic'))
-                        ->schema([
-                            TextInput::make('title.ar')
-                                ->label(__('dashboard.fields.title'))
-                                ->required()
-                                ->maxLength(191),
-                        ]),
-                    Tab::make(__('dashboard.fields.english'))
-                        ->schema([
-                            TextInput::make('title.en')
-                                ->label(__('dashboard.fields.title'))
-                                ->required()
-                                ->maxLength(191)
-                                ->extraInputAttributes(['dir' => 'ltr']),
-                        ]),
+            Section::make()
+                ->schema([
+                    Select::make('academic_year_id')
+                        ->label(__('dashboard.fields.academic_year'))
+                        ->options(fn () => AcademicYear::query()
+                            ->orderBy('sort_order')
+                            ->get()
+                            ->mapWithKeys(fn (AcademicYear $year) => [
+                                $year->id => $year->localized('title', 'ar'),
+                            ]))
+                        ->required()
+                        ->searchable()
+                        ->preload(),
+                    TextInput::make('title.ar')
+                        ->label(__('dashboard.fields.title'))
+                        ->required()
+                        ->maxLength(191),
+                    TextInput::make('image_url')
+                        ->label(__('dashboard.fields.image_url'))
+                        ->url()
+                        ->maxLength(2048)
+                        ->columnSpanFull(),
+                    TextInput::make('sort_order')
+                        ->label(__('dashboard.fields.sort_order'))
+                        ->integer()
+                        ->minValue(0)
+                        ->required()
+                        ->default(0),
+                    Toggle::make('is_active')
+                        ->label(__('dashboard.fields.active'))
+                        ->default(true),
                 ])
+                ->columns(2)
                 ->columnSpanFull(),
-            TextInput::make('image_url')
-                ->label(__('dashboard.fields.image_url'))
-                ->url()
-                ->maxLength(2048)
-                ->columnSpanFull(),
-            TextInput::make('sort_order')
-                ->label(__('dashboard.fields.sort_order'))
-                ->integer()
-                ->minValue(0)
-                ->required()
-                ->default(0),
-            Toggle::make('is_active')
-                ->label(__('dashboard.fields.active'))
-                ->default(true),
         ]);
     }
 
@@ -105,9 +95,6 @@ class SubjectResource extends Resource
                     ->label(__('dashboard.fields.title'))
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('title.en')
-                    ->label(__('dashboard.fields.english'))
-                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('academicYear.title.ar')
                     ->label(__('dashboard.fields.academic_year'))
                     ->searchable(),
@@ -127,7 +114,7 @@ class SubjectResource extends Resource
                     ->label(__('dashboard.fields.academic_year'))
                     ->relationship('academicYear', 'id')
                     ->getOptionLabelFromRecordUsing(
-                        fn (AcademicYear $record) => $record->localized('title'),
+                        fn (AcademicYear $record) => $record->localized('title', 'ar'),
                     ),
                 TernaryFilter::make('is_active')
                     ->label(__('dashboard.fields.active')),
