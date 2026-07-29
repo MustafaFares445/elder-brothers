@@ -11,6 +11,7 @@ class SubscriptionQrCode extends Model
     protected $fillable = [
         'course_id',
         'code_hash',
+        'code_encrypted',
         'code_hint',
         'label',
         'starts_at',
@@ -25,9 +26,23 @@ class SubscriptionQrCode extends Model
     protected function casts(): array
     {
         return [
+            'code_encrypted' => 'encrypted',
             'starts_at' => 'datetime',
             'expires_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (SubscriptionQrCode $qrCode): void {
+            $qrCode->starts_at ??= now();
+            $qrCode->expires_at = $qrCode->starts_at->copy()->addDays(2);
+            $qrCode->max_redemptions = 1;
+        });
+
+        static::saving(function (SubscriptionQrCode $qrCode): void {
+            $qrCode->max_redemptions = 1;
+        });
     }
 
     public function course(): BelongsTo
