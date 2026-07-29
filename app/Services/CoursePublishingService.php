@@ -13,14 +13,12 @@ class CoursePublishingService
 
         $errors = [];
 
-        foreach (['ar', 'en'] as $locale) {
-            if (blank(data_get($course->title, $locale))) {
-                $errors["title.{$locale}"][] = __('dashboard.validation.translation_required');
-            }
+        if (blank(data_get($course->title, 'ar'))) {
+            $errors['title.ar'][] = __('dashboard.validation.translation_required');
+        }
 
-            if (blank(data_get($course->description, $locale))) {
-                $errors["description.{$locale}"][] = __('dashboard.validation.translation_required');
-            }
+        if (blank(data_get($course->description, 'ar'))) {
+            $errors['description.ar'][] = __('dashboard.validation.translation_required');
         }
 
         if (! $course->subject?->is_active || ! $course->subject?->academicYear?->is_active) {
