@@ -32,6 +32,8 @@ class CourseFile extends Model
     protected static function booted(): void
     {
         static::saving(function (CourseFile $file): void {
+            $file->is_downloadable = true;
+
             if ($file->file_path) {
                 $disk = Storage::disk(config('filesystems.course_media', 'local'));
 
@@ -72,10 +74,11 @@ class CourseFile extends Model
 
     public function localized(string $field, ?string $locale = null): ?string
     {
-        $values = $this->{$field};
+        $values = (array) $this->{$field};
         $locale ??= app()->getLocale();
 
         return $values[$locale]
+            ?? $values['ar']
             ?? $values[config('app.fallback_locale')]
             ?? null;
     }
