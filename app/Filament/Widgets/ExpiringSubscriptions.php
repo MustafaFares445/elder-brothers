@@ -21,19 +21,28 @@ class ExpiringSubscriptions extends TableWidget
                     ->with(['user', 'course'])
                     ->where('status', 'active')
                     ->whereNull('revoked_at')
-                    ->whereBetween('expires_at', [now(), now()->addDays(30)])
+                    ->whereBetween('expires_at', [now(), now()->addDays(7)])
             )
             ->columns([
-                TextColumn::make('user.full_name')->label(__('dashboard.fields.user'))->searchable(),
-                TextColumn::make('course.title.ar')->label(__('dashboard.fields.course')),
-                TextColumn::make('expires_at')->label(__('dashboard.fields.expires_at'))->dateTime()->sortable(),
+                TextColumn::make('user.full_name')
+                    ->label(__('dashboard.fields.user')),
+                TextColumn::make('course.title.ar')
+                    ->label(__('dashboard.fields.course')),
+                TextColumn::make('expires_at')
+                    ->label(__('dashboard.fields.expires_at'))
+                    ->dateTime('Y-m-d H:i')
+                    ->sortable(),
                 TextColumn::make('days_remaining')
                     ->label(__('dashboard.fields.days_remaining'))
-                    ->state(fn (CourseSubscription $record): int => max(0, now()->diffInDays($record->expires_at, false)))
+                    ->state(fn (CourseSubscription $record): int => max(0, (int) now()->diffInDays($record->expires_at, false)))
                     ->badge()
-                    ->color(fn (int $state): string => $state <= 7 ? 'danger' : 'warning'),
+                    ->color(fn (int $state): string => $state <= 3 ? 'danger' : 'warning'),
             ])
+            ->emptyStateIcon('heroicon-o-clock')
+            ->emptyStateHeading(__('dashboard_empty.expiring_subscriptions'))
+            ->emptyStateDescription(__('dashboard_empty.expiring_subscriptions_description'))
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->limit(10))
+            ->defaultSort('expires_at')
             ->paginated(false);
     }
 }
