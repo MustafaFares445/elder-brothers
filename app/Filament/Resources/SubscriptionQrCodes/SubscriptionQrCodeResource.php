@@ -4,20 +4,19 @@ namespace App\Filament\Resources\SubscriptionQrCodes;
 
 use App\Filament\Resources\SubscriptionQrCodes\Pages;
 use App\Models\Course;
-use App\Models\PlatformSetting;
 use App\Models\SubscriptionQrCode;
+use App\Services\SubscriptionQrCodeService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Str;
 
 class SubscriptionQrCodeResource extends Resource
 {
@@ -46,60 +45,45 @@ class SubscriptionQrCodeResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Select::make('course_id')
-                ->label(__('dashboard.fields.course'))
-                ->options(fn () => Course::query()
-                    ->where('status', 'published')
-                    ->get()
-                    ->mapWithKeys(fn (Course $course) => [
-                        $course->id => $course->localized('title'),
-                    ]))
-                ->required()
-                ->searchable(),
-            TextInput::make('label')
-                ->label(__('dashboard.fields.label'))
-                ->required()
-                ->maxLength(191),
-            TextInput::make('raw_code')
-                ->label(__('dashboard.fields.raw_code'))
-                ->default(fn () => 'ELDER-'.Str::upper(Str::random(32)))
-                ->disabled()
-                ->dehydrated()
-                ->required()
-                ->minLength(16)
-                ->maxLength(2048)
-                ->visibleOn('create')
-                ->helperText(__('dashboard.messages.raw_qr_once')),
-            TextInput::make('code_hint')
-                ->label(__('dashboard.fields.code_hint'))
-                ->disabled()
-                ->dehydrated(false)
-                ->visibleOn('edit'),
-            DateTimePicker::make('starts_at')
-                ->label(__('dashboard.fields.starts_at'))
-                ->default(now()),
-            DateTimePicker::make('expires_at')
-                ->label(__('dashboard.fields.expires_at')),
-            TextInput::make('subscription_duration_days')
-                ->label(__('dashboard.fields.subscription_duration_days'))
-                ->integer()
-                ->minValue(1)
-                ->default(fn (): int => (int) PlatformSetting::value('default_qr_duration_days', 365)),
-            TextInput::make('max_redemptions')
-                ->label(__('dashboard.fields.max_redemptions'))
-                ->integer()
-                ->minValue(1)
-                ->default(fn (): int => (int) PlatformSetting::value('default_qr_max_redemptions', 1)),
-            Select::make('status')
-                ->label(__('dashboard.fields.status'))
-                ->options([
-                    'active' => __('dashboard.statuses.active'),
-                    'disabled' => __('dashboard.statuses.disabled'),
-                    'exhausted' => __('dashboard.statuses.exhausted'),
-                    'expired' => __('dashboard.statuses.expired'),
+            Section::make()
+                ->schema([
+                    Select::make('course_id')
+                        ->label(__('dashboard.fields.course'))
+                        ->options(fn () => Course::query()
+                            ->where('status', 'published')
+                            ->get()
+                            ->mapWithKeys(fn (Course $course) => [
+                                $course->id => $course->localized('title', 'ar'),
+                            ]))
+                        ->required()
+                        ->searchable()
+                        ->preload(),
+                    TextInput::make('label')
+                        ->label(__('dashboard.fields.label'))
+                        ->required()
+                        ->maxLength(191),
+                    TextInput::make('raw_code')
+                        ->label(__('dashboard.fields.raw_code'))
+                        ->default(fn () => app(SubscriptionQrCodeService::class)->generateRawCode())
+                        ->disabled()
+                        ->dehydrated()
+                        ->required()
+                        ->visibleOn('create')
+                        ->helperText('يستخدم الكود مرة واحدة فقط وتنتهي صلاحيته بعد يومين.'),
+                    TextInput::make('code_encrypted')
+                        ->label(__('dashboard.fields.raw_code'))
+                        ->disabled()
+                        ->dehydrated(false)
+                        ->visibleOn('edit'),
+                    TextInput::make('subscription_duration_days')
+                        ->label(__('dashboard.fields.subscription_duration_days'))
+                        ->integer()
+                        ->minValue(1)
+                        ->default(365)
+                        ->required(),
                 ])
-                ->default('active')
-                ->required(),
+                ->columns(2)
+                ->columnSpanFull(),
         ]);
     }
 
@@ -114,29 +98,29 @@ class SubscriptionQrCodeResource extends Resource
                 TextColumn::make('course.title.ar')
                     ->label(__('dashboard.fields.course'))
                     ->searchable(),
-                TextColumn::make('code_hint')
-                    ->label(__('dashboard.fields.code_hint'))
-                    ->copyable(),
+                TextColumn::make('code_encrypted')
+                    ->label(__('dashboard.fields.raw_code'))
+                    ->formatStateUsing(fn (?string $state): string => $state ?: 'غير متوفر للكود القديم')
+                    ->copyable()
+                    ->wrap(),
                 TextColumn::make('redemptions_count')
                     ->label(__('dashboard.fields.redemptions_count'))
-                    ->numeric(),
-                TextColumn::make('max_redemptions')
-                    ->label(__('dashboard.fields.max_redemptions'))
-                    ->numeric(),
+                    ->formatStateUsing(fn (int $state): string => $state > 0 ? 'تم الاستخدام' : 'غير مستخدم')
+                    ->badge()
+                    ->color(fn (int $state): string => $state > 0 ? 'gray' : 'success'),
                 TextColumn::make('subscription_duration_days')
                     ->label(__('dashboard.fields.subscription_duration_days'))
-                    ->numeric(),
+                    ->formatStateUsing(fn (int $state): string => $state.' يوم'),
                 TextColumn::make('status')
                     ->label(__('dashboard.fields.status'))
                     ->formatStateUsing(fn (string $state) => __("dashboard.statuses.{$state}"))
                     ->badge(),
                 TextColumn::make('expires_at')
                     ->label(__('dashboard.fields.expires_at'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => $state
+                        ? $state->locale('ar')->translatedFormat('d F Y، H:i')
+                        : 'غير محدد')
                     ->sortable(),
-                TextColumn::make('creator.full_name')
-                    ->label(__('dashboard.fields.created_by'))
-                    ->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -149,7 +133,8 @@ class SubscriptionQrCodeResource extends Resource
                     ]),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->visible(fn (SubscriptionQrCode $record): bool => $record->redemptions_count === 0),
                 Action::make('disable')
                     ->label(__('dashboard.actions.deactivate'))
                     ->color('danger')
@@ -160,7 +145,7 @@ class SubscriptionQrCodeResource extends Resource
                     ->label(__('dashboard.actions.activate'))
                     ->color('success')
                     ->visible(fn (SubscriptionQrCode $record) => $record->status === 'disabled'
-                        && (! $record->expires_at || $record->expires_at->isFuture()))
+                        && $record->expires_at?->isFuture())
                     ->action(fn (SubscriptionQrCode $record) => $record->update(['status' => 'active'])),
             ])
             ->defaultSort('created_at', 'desc');
