@@ -10,12 +10,9 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Components\Tabs;
-use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -31,27 +28,15 @@ class CourseVideosRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         return $schema->components([
-            Tabs::make('translations')
-                ->tabs([
-                    Tab::make(__('dashboard.fields.arabic'))
-                        ->schema([
-                            TextInput::make('title.ar')
-                                ->label(__('dashboard.fields.title'))
-                                ->required(),
-                            TextInput::make('lesson_label.ar')
-                                ->label(__('dashboard.fields.subtitle')),
-                        ]),
-                    Tab::make(__('dashboard.fields.english'))
-                        ->schema([
-                            TextInput::make('title.en')
-                                ->label(__('dashboard.fields.title'))
-                                ->required()
-                                ->extraInputAttributes(['dir' => 'ltr']),
-                            TextInput::make('lesson_label.en')
-                                ->label(__('dashboard.fields.subtitle'))
-                                ->extraInputAttributes(['dir' => 'ltr']),
-                        ]),
+            Section::make()
+                ->schema([
+                    TextInput::make('title.ar')
+                        ->label(__('dashboard.fields.title'))
+                        ->required(),
+                    TextInput::make('lesson_label.ar')
+                        ->label(__('dashboard.fields.subtitle')),
                 ])
+                ->columns(2)
                 ->columnSpanFull(),
             FileUpload::make('source_path')
                 ->label(__('dashboard.fields.source_path'))
@@ -82,10 +67,6 @@ class CourseVideosRelationManager extends RelationManager
                 ->minValue(0)
                 ->required()
                 ->default(0),
-            Toggle::make('is_preview')
-                ->label(__('dashboard.fields.preview')),
-            Toggle::make('is_downloadable')
-                ->label(__('dashboard.fields.downloadable')),
             Select::make('status')
                 ->label(__('dashboard.fields.status'))
                 ->options([
@@ -111,19 +92,13 @@ class CourseVideosRelationManager extends RelationManager
                 TextColumn::make('sort_order')
                     ->label(__('dashboard.fields.sort_order'))
                     ->numeric(),
-                IconColumn::make('is_preview')
-                    ->label(__('dashboard.fields.preview'))
-                    ->boolean(),
-                IconColumn::make('is_downloadable')
-                    ->label(__('dashboard.fields.downloadable'))
-                    ->boolean(),
                 TextColumn::make('status')
                     ->label(__('dashboard.fields.status'))
                     ->formatStateUsing(fn (string $state) => __("dashboard.statuses.{$state}"))
                     ->badge(),
             ])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()->label('إضافة فيديو'),
             ])
             ->recordActions([
                 EditAction::make(),
