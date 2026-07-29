@@ -19,7 +19,7 @@ class SubscriptionSourcesChart extends ChartWidget
 
     protected ?string $maxHeight = '300px';
 
-    protected function getHeading(): ?string
+    public function getHeading(): ?string
     {
         return __('dashboard.widgets.subscription_sources');
     }
