@@ -28,6 +28,8 @@ class Dashboard extends BaseDashboard
                         ->afterOrEqual('startDate'),
                     Select::make('academicYearId')
                         ->label(__('dashboard.fields.academic_year'))
+                        ->searchable()
+                        ->preload()
                         ->options(fn (): array => AcademicYear::query()
                             ->orderBy('sort_order')
                             ->get()
@@ -35,6 +37,8 @@ class Dashboard extends BaseDashboard
                             ->all()),
                     Select::make('subjectId')
                         ->label(__('dashboard.fields.subject'))
+                        ->searchable()
+                        ->preload()
                         ->options(fn (): array => Subject::query()
                             ->orderBy('sort_order')
                             ->get()
@@ -42,6 +46,8 @@ class Dashboard extends BaseDashboard
                             ->all()),
                     Select::make('courseId')
                         ->label(__('dashboard.fields.course'))
+                        ->searchable()
+                        ->preload()
                         ->options(fn (): array => Course::query()
                             ->orderBy('id')
                             ->get()
@@ -50,9 +56,11 @@ class Dashboard extends BaseDashboard
                 ])
                 ->columns([
                     'default' => 1,
-                    'md' => 3,
+                    'sm' => 2,
+                    'lg' => 3,
                     'xl' => 5,
-                ]),
+                ])
+                ->columnSpanFull(),
         ]);
     }
 }
