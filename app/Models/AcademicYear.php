@@ -31,10 +31,11 @@ class AcademicYear extends Model
 
     public function localized(string $field, ?string $locale = null): ?string
     {
-        $values = $this->{$field};
+        $values = (array) $this->{$field};
         $locale ??= app()->getLocale();
 
         return $values[$locale]
+            ?? $values['ar']
             ?? $values[config('app.fallback_locale')]
             ?? null;
     }
