@@ -35,6 +35,11 @@ class CourseVideo extends Model
 
     protected static function booted(): void
     {
+        static::saving(function (CourseVideo $video): void {
+            $video->is_preview = false;
+            $video->is_downloadable = true;
+        });
+
         static::deleted(function (CourseVideo $video): void {
             $disk = Storage::disk(config('filesystems.course_media', 'local'));
             $paths = array_filter([
@@ -61,10 +66,11 @@ class CourseVideo extends Model
 
     public function localized(string $field, ?string $locale = null): ?string
     {
-        $values = $this->{$field};
+        $values = (array) $this->{$field};
         $locale ??= app()->getLocale();
 
         return $values[$locale]
+            ?? $values['ar']
             ?? $values[config('app.fallback_locale')]
             ?? null;
     }
