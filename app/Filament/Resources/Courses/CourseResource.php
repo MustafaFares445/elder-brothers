@@ -20,8 +20,6 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Tabs;
-use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -73,18 +71,13 @@ class CourseResource extends Resource
                             ->mapWithKeys(fn (Subject $subject) => [
                                 $subject->id => sprintf(
                                     '%s — %s',
-                                    $subject->academicYear->localized('title'),
-                                    $subject->localized('title'),
+                                    $subject->academicYear->localized('title', 'ar'),
+                                    $subject->localized('title', 'ar'),
                                 ),
                             ]))
                         ->required()
-                        ->searchable(),
-                    TextInput::make('slug')
-                        ->label(__('dashboard.fields.slug'))
-                        ->required()
-                        ->unique(ignoreRecord: true)
-                        ->maxLength(191)
-                        ->helperText('lowercase-kebab-case'),
+                        ->searchable()
+                        ->preload(),
                     Select::make('status')
                         ->label(__('dashboard.fields.status'))
                         ->options([
@@ -100,43 +93,22 @@ class CourseResource extends Resource
                         ->label(__('dashboard.fields.published_at')),
                 ])
                 ->columns(2),
-            Tabs::make('translations')
-                ->tabs([
-                    Tab::make(__('dashboard.fields.arabic'))
-                        ->schema([
-                            TextInput::make('title.ar')
-                                ->label(__('dashboard.fields.title'))
-                                ->required()
-                                ->maxLength(191),
-                            Textarea::make('short_description.ar')
-                                ->label(__('dashboard.fields.short_description'))
-                                ->rows(3)
-                                ->maxLength(1000),
-                            RichEditor::make('description.ar')
-                                ->label(__('dashboard.fields.description'))
-                                ->required()
-                                ->columnSpanFull(),
-                        ]),
-                    Tab::make(__('dashboard.fields.english'))
-                        ->schema([
-                            TextInput::make('title.en')
-                                ->label(__('dashboard.fields.title'))
-                                ->required()
-                                ->maxLength(191)
-                                ->live(onBlur: true)
-                                ->afterStateUpdated(fn (?string $state, $set) => $set('slug', Str::slug((string) $state)))
-                                ->extraInputAttributes(['dir' => 'ltr']),
-                            Textarea::make('short_description.en')
-                                ->label(__('dashboard.fields.short_description'))
-                                ->rows(3)
-                                ->maxLength(1000)
-                                ->extraInputAttributes(['dir' => 'ltr']),
-                            RichEditor::make('description.en')
-                                ->label(__('dashboard.fields.description'))
-                                ->required()
-                                ->columnSpanFull()
-                                ->extraAttributes(['dir' => 'ltr']),
-                        ]),
+            Section::make('معلومات الدورة')
+                ->schema([
+                    TextInput::make('title.ar')
+                        ->label(__('dashboard.fields.title'))
+                        ->required()
+                        ->maxLength(191)
+                        ->columnSpanFull(),
+                    Textarea::make('short_description.ar')
+                        ->label(__('dashboard.fields.short_description'))
+                        ->rows(3)
+                        ->maxLength(1000)
+                        ->columnSpanFull(),
+                    RichEditor::make('description.ar')
+                        ->label(__('dashboard.fields.description'))
+                        ->required()
+                        ->columnSpanFull(),
                 ])
                 ->columnSpanFull(),
             Section::make(__('dashboard.sections.media'))
@@ -171,10 +143,6 @@ class CourseResource extends Resource
                     ->label(__('dashboard.fields.title'))
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('title.en')
-                    ->label(__('dashboard.fields.english'))
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('subject.title.ar')
                     ->label(__('dashboard.fields.subject'))
                     ->searchable(),
@@ -205,7 +173,9 @@ class CourseResource extends Resource
                     ->toggleable(),
                 TextColumn::make('published_at')
                     ->label(__('dashboard.fields.published_at'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => $state
+                        ? $state->locale('ar')->translatedFormat('d F Y')
+                        : 'غير منشورة')
                     ->sortable(),
             ])
             ->filters([
@@ -221,7 +191,7 @@ class CourseResource extends Resource
                     ->options(fn () => Subject::query()
                         ->get()
                         ->mapWithKeys(fn (Subject $subject) => [
-                            $subject->id => $subject->localized('title'),
+                            $subject->id => $subject->localized('title', 'ar'),
                         ]))
                     ->searchable(),
                 TernaryFilter::make('is_featured')
