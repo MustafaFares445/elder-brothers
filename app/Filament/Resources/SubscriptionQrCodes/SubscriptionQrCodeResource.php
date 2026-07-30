@@ -70,7 +70,7 @@ class SubscriptionQrCodeResource extends Resource
                         ->dehydrated()
                         ->required()
                         ->visibleOn('create')
-                        ->helperText(__('dashboard.messages.qr_single_use_help')),
+                        ->helperText('يستخدم الكود مرة واحدة فقط. يمكنك تحديد تاريخ انتهاء صلاحيته.'),
                     TextInput::make('code_encrypted')
                         ->label(__('dashboard.fields.raw_code'))
                         ->disabled()
@@ -78,7 +78,7 @@ class SubscriptionQrCodeResource extends Resource
                         ->visibleOn('edit')
                         ->suffixAction(
                             Action::make('view_barcode')
-                                ->label(__('dashboard.actions.view_barcode'))
+                                ->label('عرض الباركود')
                                 ->icon('heroicon-o-qr-code')
                                 ->url(fn (?SubscriptionQrCode $record): ?string => $record?->barcodeUrl(420))
                                 ->openUrlInNewTab(),
@@ -90,7 +90,7 @@ class SubscriptionQrCodeResource extends Resource
                         ->seconds(false)
                         ->native(false)
                         ->required()
-                        ->helperText(__('dashboard.messages.qr_expiration_help')),
+                        ->helperText('بعد هذا التاريخ لن يقبل التطبيق استخدام الكود.'),
                     TextInput::make('subscription_duration_days')
                         ->label(__('dashboard.fields.subscription_duration_days'))
                         ->integer()
@@ -150,7 +150,7 @@ class SubscriptionQrCodeResource extends Resource
             ])
             ->recordActions([
                 Action::make('view_barcode')
-                    ->label(__('dashboard.actions.view_barcode'))
+                    ->label('عرض الباركود')
                     ->icon('heroicon-o-qr-code')
                     ->url(fn (SubscriptionQrCode $record): ?string => $record->barcodeUrl(520))
                     ->openUrlInNewTab()
