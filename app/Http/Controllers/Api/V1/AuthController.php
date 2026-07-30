@@ -37,71 +37,41 @@ class AuthController extends Controller
         ]);
 
         $phone = $this->normalizePhone($data['phone']);
-        $existing = User::where('phone', $phone)->first();
 
-        if ($existing?->phone_verified_at) {
+        if (User::query()->where('phone', $phone)->exists()) {
             return $this->error('PHONE_ALREADY_REGISTERED', __('api.phone_already_registered'), 409);
         }
 
-        User::updateOrCreate(
-            ['phone' => $phone],
-            [
-                'full_name' => $data['full_name'],
-                'password' => $data['password'],
-                'status' => 'active',
-            ],
-        );
-
-        $otp = $this->otp->issue($phone, 'registration');
-
-        return $this->success([
+        $user = User::query()->create([
+            'full_name' => $data['full_name'],
             'phone' => $phone,
-            'verification_required' => true,
-            'otp_expires_at' => $otp->expires_at->toIso8601String(),
-            'resend_after_seconds' => config('elder.otp.resend_seconds'),
-        ], __('api.verification_sent'), 'REGISTRATION_CREATED', 201);
-    }
-
-    public function verifyOtp(Request $request)
-    {
-        $data = $request->validate([
-            'phone' => ['required', 'string'],
-            'otp' => ['required', 'digits:6'],
-            'device_name' => ['nullable', 'string', 'max:100'],
-            'device_id' => ['nullable', 'string', 'max:191'],
-            'platform' => ['nullable', Rule::in(['android', 'ios'])],
-            'fcm_token' => ['nullable', 'string', 'max:2048'],
+            'password' => $data['password'],
+            'status' => 'inactive',
+            'is_admin' => false,
         ]);
 
-        $phone = $this->normalizePhone($data['phone']);
-        $this->otp->verify($phone, 'registration', $data['otp']);
-
-        $user = User::where('phone', $phone)->firstOrFail();
-        $user->update(['phone_verified_at' => now()]);
-
-        $token = $user->createToken($data['device_name'] ?? 'mobile')->plainTextToken;
-        $this->upsertDevice($user, $data);
-
         return $this->success([
-            'token_type' => 'Bearer',
-            'access_token' => $token,
-            'user' => new UserResource($user),
-        ], __('api.phone_verified'), 'PHONE_VERIFIED');
+            'user_id' => $user->id,
+            'phone' => $user->phone,
+            'status' => $user->status,
+            'activation_required' => true,
+        ], __('api.account_pending_activation'), 'REGISTRATION_PENDING_ACTIVATION', 201);
     }
 
     public function resendOtp(Request $request)
     {
         $data = $request->validate([
             'phone' => ['required', 'string'],
-            'purpose' => ['required', Rule::in(['registration', 'password_reset', 'phone_change'])],
+            'purpose' => ['required', Rule::in(['password_reset'])],
         ]);
 
         $phone = $this->normalizePhone($data['phone']);
-        $otp = $this->otp->issue($phone, $data['purpose']);
+        User::query()->where('phone', $phone)->firstOrFail();
+        $otp = $this->otp->issue($phone, 'password_reset');
 
         return $this->success([
             'phone' => $phone,
-            'purpose' => $data['purpose'],
+            'purpose' => 'password_reset',
             'otp_expires_at' => $otp->expires_at->toIso8601String(),
             'resend_after_seconds' => config('elder.otp.resend_seconds'),
         ], __('api.verification_sent'), 'OTP_RESENT');
@@ -118,14 +88,14 @@ class AuthController extends Controller
             'fcm_token' => ['nullable', 'string', 'max:2048'],
         ]);
 
-        $user = User::where('phone', $this->normalizePhone($data['phone']))->first();
+        $user = User::query()->where('phone', $this->normalizePhone($data['phone']))->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             return $this->error('INVALID_CREDENTIALS', __('api.invalid_credentials'), 422);
         }
 
-        if (! $user->phone_verified_at) {
-            return $this->error('PHONE_NOT_VERIFIED', __('api.phone_not_verified'), 403);
+        if ($user->status === 'inactive') {
+            return $this->error('ACCOUNT_INACTIVE', __('api.account_inactive'), 403);
         }
 
         if ($user->status !== 'active') {
@@ -159,7 +129,7 @@ class AuthController extends Controller
         $data = $request->validate(['phone' => ['required', 'string']]);
         $phone = $this->normalizePhone($data['phone']);
 
-        User::where('phone', $phone)->firstOrFail();
+        User::query()->where('phone', $phone)->firstOrFail();
 
         $otp = $this->otp->issue($phone, 'password_reset');
 
@@ -204,7 +174,7 @@ class AuthController extends Controller
             return $this->error('RESET_TOKEN_INVALID', __('api.reset_token_invalid'), 422);
         }
 
-        User::where('phone', $phone)->firstOrFail()->update(['password' => $data['password']]);
+        User::query()->where('phone', $phone)->firstOrFail()->update(['password' => $data['password']]);
 
         return $this->success(null, __('api.password_reset'), 'PASSWORD_RESET');
     }
