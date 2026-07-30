@@ -10,11 +10,15 @@ class EnsureUserIsActive
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user()?->status !== 'active') {
+        $status = $request->user()?->status;
+
+        if ($status !== 'active') {
+            $inactive = $status === 'inactive';
+
             return response()->json([
                 'success' => false,
-                'code' => 'ACCOUNT_SUSPENDED',
-                'message' => __('api.account_suspended'),
+                'code' => $inactive ? 'ACCOUNT_INACTIVE' : 'ACCOUNT_SUSPENDED',
+                'message' => $inactive ? __('api.account_inactive') : __('api.account_suspended'),
             ], 403);
         }
 
