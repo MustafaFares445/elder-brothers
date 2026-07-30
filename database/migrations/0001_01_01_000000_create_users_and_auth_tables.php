@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('password');
             $table->timestamp('phone_verified_at')->nullable();
             $table->string('avatar_path')->nullable();
-            $table->enum('status', ['active', 'suspended'])->default('active')->index();
+            $table->enum('status', ['inactive', 'active', 'suspended'])->default('active')->index();
             $table->boolean('is_admin')->default(false)->index();
             $table->timestamp('last_login_at')->nullable();
             $table->rememberToken();
@@ -79,7 +79,7 @@ return new class extends Migration
         Schema::create('sessions', function (Blueprint $table): void {
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();
-            $table->string('ip_address', 45)->nullable();
+            $table->string('ip_address')->nullable();
             $table->text('user_agent')->nullable();
             $table->longText('payload');
             $table->integer('last_activity')->index();
