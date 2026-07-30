@@ -8,6 +8,7 @@ use App\Models\SubscriptionQrCode;
 use App\Services\SubscriptionQrCodeService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
@@ -69,12 +70,27 @@ class SubscriptionQrCodeResource extends Resource
                         ->dehydrated()
                         ->required()
                         ->visibleOn('create')
-                        ->helperText('يستخدم الكود مرة واحدة فقط وتنتهي صلاحيته بعد يومين.'),
+                        ->helperText(__('dashboard.messages.qr_single_use_help')),
                     TextInput::make('code_encrypted')
                         ->label(__('dashboard.fields.raw_code'))
                         ->disabled()
                         ->dehydrated(false)
-                        ->visibleOn('edit'),
+                        ->visibleOn('edit')
+                        ->suffixAction(
+                            Action::make('view_barcode')
+                                ->label(__('dashboard.actions.view_barcode'))
+                                ->icon('heroicon-o-qr-code')
+                                ->url(fn (?SubscriptionQrCode $record): ?string => $record?->barcodeUrl(420))
+                                ->openUrlInNewTab(),
+                        ),
+                    DateTimePicker::make('expires_at')
+                        ->label(__('dashboard.fields.expires_at'))
+                        ->default(fn () => now()->addDays(2))
+                        ->minDate(now())
+                        ->seconds(false)
+                        ->native(false)
+                        ->required()
+                        ->helperText(__('dashboard.messages.qr_expiration_help')),
                     TextInput::make('subscription_duration_days')
                         ->label(__('dashboard.fields.subscription_duration_days'))
                         ->integer()
@@ -133,6 +149,12 @@ class SubscriptionQrCodeResource extends Resource
                     ]),
             ])
             ->recordActions([
+                Action::make('view_barcode')
+                    ->label(__('dashboard.actions.view_barcode'))
+                    ->icon('heroicon-o-qr-code')
+                    ->url(fn (SubscriptionQrCode $record): ?string => $record->barcodeUrl(520))
+                    ->openUrlInNewTab()
+                    ->visible(fn (SubscriptionQrCode $record): bool => filled($record->code_encrypted)),
                 EditAction::make()
                     ->visible(fn (SubscriptionQrCode $record): bool => $record->redemptions_count === 0),
                 Action::make('disable')
