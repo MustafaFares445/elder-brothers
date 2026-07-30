@@ -5,6 +5,8 @@ return [
     'validation_failed' => 'البيانات المرسلة غير صالحة.',
     'server_error' => 'حدث خطأ غير متوقع في الخادم.',
     'request_failed' => 'تعذر إكمال الطلب.',
+    'account_inactive' => 'الحساب غير مفعل بعد. يرجى انتظار تفعيله من الإدارة.',
+    'account_pending_activation' => 'تم إنشاء الحساب بنجاح وهو بانتظار تفعيله من الإدارة.',
     'account_suspended' => 'تم إيقاف هذا الحساب.',
     'registration_disabled' => 'التسجيل الجديد متوقف مؤقتاً.',
     'phone_already_registered' => 'رقم الهاتف مسجل مسبقاً.',
