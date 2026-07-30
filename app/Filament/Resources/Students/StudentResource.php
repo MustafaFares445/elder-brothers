@@ -73,8 +73,8 @@ class StudentResource extends Resource
                 ->maxLength(191)
                 ->unique(ignoreRecord: true),
             Toggle::make('account_active')
-                ->label(__('dashboard.fields.account_active'))
-                ->helperText(__('dashboard.messages.account_activation_help'))
+                ->label('الحساب فعال')
+                ->helperText('الحساب الجديد يكون غير نشط، ولا يستطيع تسجيل الدخول حتى يتم تفعيله من الإدارة.')
                 ->inline(false),
         ]);
     }
@@ -89,7 +89,7 @@ class StudentResource extends Resource
                     TextEntry::make('email')->label(__('dashboard.fields.email')),
                     TextEntry::make('status')
                         ->label(__('dashboard.fields.status'))
-                        ->formatStateUsing(fn (string $state) => __("dashboard.statuses.{$state}"))
+                        ->formatStateUsing(fn (string $state): string => self::statusLabel($state))
                         ->badge(),
                     TextEntry::make('last_login_at')
                         ->label(__('dashboard.fields.last_login_at'))
@@ -118,20 +118,18 @@ class StudentResource extends Resource
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 ToggleColumn::make('account_active')
-                    ->label(__('dashboard.fields.account_active'))
+                    ->label('الحساب فعال')
                     ->onColor('success')
                     ->offColor('danger')
                     ->afterStateUpdated(function (User $record, bool $state): void {
                         Notification::make()
-                            ->title($state
-                                ? __('dashboard.messages.account_activated')
-                                : __('dashboard.messages.account_deactivated'))
+                            ->title($state ? 'تم تفعيل الحساب' : 'تم تعطيل الحساب')
                             ->success()
                             ->send();
                     }),
                 TextColumn::make('status')
                     ->label(__('dashboard.fields.status'))
-                    ->formatStateUsing(fn (string $state) => __("dashboard.statuses.{$state}"))
+                    ->formatStateUsing(fn (string $state): string => self::statusLabel($state))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'active' => 'success',
@@ -154,9 +152,9 @@ class StudentResource extends Resource
                 SelectFilter::make('status')
                     ->label(__('dashboard.fields.status'))
                     ->options([
-                        'inactive' => __('dashboard.statuses.inactive'),
-                        'active' => __('dashboard.statuses.active'),
-                        'suspended' => __('dashboard.statuses.suspended'),
+                        'inactive' => 'غير نشط',
+                        'active' => 'نشط',
+                        'suspended' => 'موقوف',
                     ]),
                 Filter::make('has_active_subscription')
                     ->label(__('dashboard.widgets.active_subscriptions'))
@@ -206,5 +204,15 @@ class StudentResource extends Resource
             'view' => Pages\ViewStudent::route('/{record}'),
             'edit' => Pages\EditStudent::route('/{record}/edit'),
         ];
+    }
+
+    private static function statusLabel(string $status): string
+    {
+        return match ($status) {
+            'active' => 'نشط',
+            'inactive' => 'غير نشط',
+            'suspended' => 'موقوف',
+            default => $status,
+        };
     }
 }
