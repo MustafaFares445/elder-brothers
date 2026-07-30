@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -9,7 +10,7 @@ class AuthFlowTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_user_can_register_verify_and_access_profile(): void
+    public function test_registered_user_stays_inactive_until_dashboard_activation(): void
     {
         $register = $this->postJson('/api/v1/auth/register', [
             'full_name' => 'New Student',
@@ -18,41 +19,49 @@ class AuthFlowTest extends TestCase
             'password_confirmation' => 'Password123',
         ]);
 
-        $register->assertCreated()
+        $register
+            ->assertCreated()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('code', 'REGISTRATION_CREATED')
-            ->assertJsonPath('data.verification_required', true);
+            ->assertJsonPath('code', 'REGISTRATION_PENDING_ACTIVATION')
+            ->assertJsonPath('data.status', 'inactive')
+            ->assertJsonPath('data.activation_required', true);
 
-        $verify = $this->postJson('/api/v1/auth/verify-otp', [
+        $user = User::query()->where('phone', '+963911111111')->firstOrFail();
+        $this->assertSame('inactive', $user->status);
+
+        $this->postJson('/api/v1/auth/login', [
             'phone' => '+963911111111',
-            'otp' => '123456',
+            'password' => 'Password123',
+        ])->assertForbidden()->assertJsonPath('code', 'ACCOUNT_INACTIVE');
+
+        $user->account_active = true;
+        $user->save();
+
+        $login = $this->postJson('/api/v1/auth/login', [
+            'phone' => '+963911111111',
+            'password' => 'Password123',
             'device_name' => 'phpunit',
         ]);
 
-        $verify->assertOk()
-            ->assertJsonPath('code', 'PHONE_VERIFIED')
+        $login
+            ->assertOk()
+            ->assertJsonPath('code', 'LOGGED_IN')
+            ->assertJsonPath('data.user.status', 'active')
+            ->assertJsonPath('data.user.is_active', true)
+            ->assertJsonMissingPath('data.user.phone_verified')
             ->assertJsonStructure(['data' => ['access_token', 'user' => ['id', 'full_name', 'phone']]]);
 
-        $token = $verify->json('data.access_token');
-
-        $this->withToken($token)
+        $this->withToken($login->json('data.access_token'))
             ->getJson('/api/v1/me')
             ->assertOk()
             ->assertJsonPath('data.user.phone', '+963911111111');
     }
 
-    public function test_unverified_user_cannot_login(): void
+    public function test_registration_verification_endpoint_is_removed(): void
     {
-        $this->postJson('/api/v1/auth/register', [
-            'full_name' => 'Unverified Student',
+        $this->postJson('/api/v1/auth/verify-otp', [
             'phone' => '+963922222222',
-            'password' => 'Password123',
-            'password_confirmation' => 'Password123',
-        ])->assertCreated();
-
-        $this->postJson('/api/v1/auth/login', [
-            'phone' => '+963922222222',
-            'password' => 'Password123',
-        ])->assertForbidden()->assertJsonPath('code', 'PHONE_NOT_VERIFIED');
+            'otp' => '123456',
+        ])->assertNotFound();
     }
 }
