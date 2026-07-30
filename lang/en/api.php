@@ -5,6 +5,8 @@ return [
     'validation_failed' => 'The submitted data is invalid.',
     'server_error' => 'An unexpected server error occurred.',
     'request_failed' => 'The request could not be completed.',
+    'account_inactive' => 'This account is not active yet. Please wait for administrator activation.',
+    'account_pending_activation' => 'The account was created successfully and is waiting for administrator activation.',
     'account_suspended' => 'This account has been suspended.',
     'registration_disabled' => 'New registrations are temporarily disabled.',
     'phone_already_registered' => 'This phone number is already registered.',
