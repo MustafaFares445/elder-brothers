@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\SubscriptionQrCode;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 class SubscriptionQrCodeService
@@ -15,6 +16,9 @@ class SubscriptionQrCodeService
     public function create(array $data, ?string $rawCode, ?int $createdBy): array
     {
         $rawCode = trim($rawCode ?: $this->generateRawCode());
+        $expiresAt = filled($data['expires_at'] ?? null)
+            ? Carbon::parse($data['expires_at'])
+            : now()->addDays(2);
 
         $record = SubscriptionQrCode::query()->create([
             'course_id' => $data['course_id'],
@@ -23,7 +27,7 @@ class SubscriptionQrCodeService
             'code_encrypted' => $rawCode,
             'code_hint' => null,
             'starts_at' => now(),
-            'expires_at' => now()->addDays(2),
+            'expires_at' => $expiresAt,
             'max_redemptions' => 1,
             'redemptions_count' => 0,
             'subscription_duration_days' => $data['subscription_duration_days'] ?? 365,
