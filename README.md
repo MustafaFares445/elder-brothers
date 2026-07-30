@@ -5,12 +5,12 @@ Laravel backend for the Elder Brother Flutter learning application, including an
 ## Implemented scope
 
 - Sanctum mobile authentication
-- Phone registration and OTP verification
-- Login, logout, and password reset
+- Phone registration with administrator account activation
+- Login, logout, and OTP-based password reset
 - User profile, preferences, avatar endpoint, and devices
 - Academic years, subjects, courses, paid videos, and course PDFs
 - Featured home feed and Arabic catalog search
-- Single-use QR subscriptions
+- Single-use QR subscriptions with administrator-defined expiration
 - Active, expired, and revoked subscriptions
 - Protected private-local playback and download URLs
 - Range-based video streaming
@@ -31,6 +31,18 @@ php artisan serve
 ```
 
 The default seeder creates the dashboard administrator and a small real-media course. The media seeder writes valid MP4 and PDF binary files into the private course-media disk instead of storing fake URLs.
+
+## Account activation flow
+
+New mobile registrations are created with:
+
+```text
+status = inactive
+```
+
+No registration OTP or phone-verification step is required. The user cannot log in until an administrator enables **الحساب فعال** from the Students page in Filament. Disabling the toggle revokes the user's active API tokens.
+
+Password-reset OTP remains available through the forgot-password flow.
 
 ## Create a dashboard administrator
 
@@ -71,7 +83,7 @@ It creates:
 - One published Arabic course for media testing.
 - Two valid private MP4 files.
 - Two valid private PDF files.
-- A verified student with an active QR-source subscription.
+- An active student with an active QR-source subscription.
 - Repairs for existing course video or PDF records whose private files are missing.
 
 Student credentials:
@@ -95,8 +107,9 @@ storage/app/private/courses/{course_id}/pdfs
 - All course videos are paid and require an active subscription.
 - Videos and PDFs are always downloadable after authorization.
 - Subscriptions are activated only through QR codes.
-- Every QR code is single-use and expires two days after creation.
-- The full QR code is stored encrypted so administrators can copy it from the dashboard.
+- Every QR code is single-use.
+- The administrator selects the QR expiration date; the default is two days after creation.
+- The full QR code is stored encrypted, can be copied, and can be displayed as a scannable QR barcode from the dashboard.
 
 ## API
 
