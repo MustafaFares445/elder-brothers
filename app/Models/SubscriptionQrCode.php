@@ -36,13 +36,30 @@ class SubscriptionQrCode extends Model
     {
         static::creating(function (SubscriptionQrCode $qrCode): void {
             $qrCode->starts_at ??= now();
-            $qrCode->expires_at = $qrCode->starts_at->copy()->addDays(2);
+            $qrCode->expires_at ??= now()->addDays(2);
             $qrCode->max_redemptions = 1;
         });
 
         static::saving(function (SubscriptionQrCode $qrCode): void {
             $qrCode->max_redemptions = 1;
         });
+    }
+
+    public static function barcodeUrlFor(?string $code, int $size = 280): ?string
+    {
+        if (blank($code)) {
+            return null;
+        }
+
+        $size = max(120, min($size, 600));
+
+        return 'https://api.qrserver.com/v1/create-qr-code/?size='.
+            $size.'x'.$size.'&margin=12&data='.rawurlencode($code);
+    }
+
+    public function barcodeUrl(int $size = 280): ?string
+    {
+        return static::barcodeUrlFor($this->code_encrypted, $size);
     }
 
     public function course(): BelongsTo
