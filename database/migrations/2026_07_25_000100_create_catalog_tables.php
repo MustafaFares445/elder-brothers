@@ -58,7 +58,7 @@ return new class extends Migration
             $table->boolean('is_downloadable')->default(false);
             $table->enum('status', ['processing', 'ready', 'failed'])->default('processing')->index();
             $table->timestamps();
-            $table->unique(['course_id', 'sort_order']);
+            $table->index(['course_id', 'sort_order']);
         });
 
         Schema::create('course_files', function (Blueprint $table): void {
@@ -74,7 +74,7 @@ return new class extends Migration
             $table->unsignedInteger('sort_order')->default(0);
             $table->boolean('is_downloadable')->default(true);
             $table->timestamps();
-            $table->unique(['course_id', 'sort_order']);
+            $table->index(['course_id', 'sort_order']);
         });
     }
 
