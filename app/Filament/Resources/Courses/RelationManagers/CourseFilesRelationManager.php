@@ -42,12 +42,6 @@ class CourseFilesRelationManager extends RelationManager
                 ->storeFileNamesIn('original_name')
                 ->required()
                 ->columnSpanFull(),
-            TextInput::make('sort_order')
-                ->label(__('dashboard.fields.sort_order'))
-                ->integer()
-                ->minValue(0)
-                ->required()
-                ->default(0),
         ]);
     }
 
