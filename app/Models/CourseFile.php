@@ -31,6 +31,25 @@ class CourseFile extends Model
 
     protected static function booted(): void
     {
+        static::creating(function (CourseFile $file): void {
+            if (! $file->course_id) {
+                return;
+            }
+
+            $requestedOrder = (int) ($file->sort_order ?? 0);
+            $orderAlreadyUsed = $requestedOrder > 0
+                && static::query()
+                    ->where('course_id', $file->course_id)
+                    ->where('sort_order', $requestedOrder)
+                    ->exists();
+
+            if ($requestedOrder <= 0 || $orderAlreadyUsed) {
+                $file->sort_order = static::query()
+                    ->where('course_id', $file->course_id)
+                    ->max('sort_order') + 1;
+            }
+        });
+
         static::saving(function (CourseFile $file): void {
             $file->is_downloadable = true;
 
