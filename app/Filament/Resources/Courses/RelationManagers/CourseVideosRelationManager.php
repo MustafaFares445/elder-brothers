@@ -61,12 +61,6 @@ class CourseVideosRelationManager extends RelationManager
                 ->integer()
                 ->minValue(1)
                 ->required(),
-            TextInput::make('sort_order')
-                ->label(__('dashboard.fields.sort_order'))
-                ->integer()
-                ->minValue(0)
-                ->required()
-                ->default(0),
             Select::make('status')
                 ->label(__('dashboard.fields.status'))
                 ->options([
