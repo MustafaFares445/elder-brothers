@@ -35,6 +35,25 @@ class CourseVideo extends Model
 
     protected static function booted(): void
     {
+        static::creating(function (CourseVideo $video): void {
+            if (! $video->course_id) {
+                return;
+            }
+
+            $requestedOrder = (int) ($video->sort_order ?? 0);
+            $orderAlreadyUsed = $requestedOrder > 0
+                && static::query()
+                    ->where('course_id', $video->course_id)
+                    ->where('sort_order', $requestedOrder)
+                    ->exists();
+
+            if ($requestedOrder <= 0 || $orderAlreadyUsed) {
+                $video->sort_order = static::query()
+                    ->where('course_id', $video->course_id)
+                    ->max('sort_order') + 1;
+            }
+        });
+
         static::saving(function (CourseVideo $video): void {
             $video->is_preview = false;
             $video->is_downloadable = true;
