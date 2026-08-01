@@ -30,43 +30,12 @@ class PrivateMediaStreamingTest extends TestCase
             'status' => 'active',
         ]);
 
-        $year = AcademicYear::create([
-            'title' => ['ar' => 'السنة الأولى'],
-            'sort_order' => 1,
-            'is_active' => true,
-        ]);
-
-        $subject = Subject::create([
-            'academic_year_id' => $year->id,
-            'title' => ['ar' => 'الرياضيات'],
-            'sort_order' => 1,
-            'is_active' => true,
-        ]);
-
-        $course = Course::create([
-            'subject_id' => $subject->id,
-            'slug' => 'private-streaming-course',
-            'title' => ['ar' => 'دورة خاصة'],
-            'description' => ['ar' => 'وصف'],
-            'status' => 'published',
-            'published_at' => now(),
-        ]);
-
-        $path = "courses/{$course->id}/videos/sample.mp4";
-        Storage::disk('local')->put($path, '0123456789');
-
-        $video = CourseVideo::create([
-            'course_id' => $course->id,
-            'title' => ['ar' => 'فيديو'],
-            'source_path' => $path,
-            'duration_seconds' => 60,
-            'sort_order' => 1,
-            'status' => 'ready',
-        ]);
+        $video = $this->createReadyVideo();
+        Storage::disk('local')->put($video->source_path, '0123456789');
 
         CourseSubscription::create([
             'user_id' => $user->id,
-            'course_id' => $course->id,
+            'course_id' => $video->course_id,
             'source' => 'qr',
             'starts_at' => now()->subMinute(),
             'expires_at' => now()->addDay(),
@@ -96,40 +65,62 @@ class PrivateMediaStreamingTest extends TestCase
         $streamUrl = $playback->json('data.stream_url');
         $relativeStreamUrl = parse_url($streamUrl, PHP_URL_PATH).'?'.parse_url($streamUrl, PHP_URL_QUERY);
 
-        $this->get($relativeStreamUrl, ['Range' => 'bytes=0-'])
-            ->assertStatus(206)
-            ->assertHeader('Accept-Ranges', 'bytes')
-            ->assertHeader('Content-Length', '10')
-            ->assertHeader('Content-Range', 'bytes 0-9/10')
-            ->assertContent('0123456789');
+        $this->assertStreamedRange(
+            $relativeStreamUrl,
+            'bytes=0-',
+            206,
+            [
+                'Accept-Ranges' => 'bytes',
+                'Content-Length' => '10',
+                'Content-Range' => 'bytes 0-9/10',
+            ],
+            '0123456789',
+        );
 
-        $this->get($relativeStreamUrl, ['Range' => 'bytes=4-'])
-            ->assertStatus(206)
-            ->assertHeader('Content-Length', '6')
-            ->assertHeader('Content-Range', 'bytes 4-9/10')
-            ->assertContent('456789');
+        $this->assertStreamedRange(
+            $relativeStreamUrl,
+            'bytes=4-',
+            206,
+            [
+                'Content-Length' => '6',
+                'Content-Range' => 'bytes 4-9/10',
+            ],
+            '456789',
+        );
 
-        $this->get($relativeStreamUrl, ['Range' => 'Bytes = 2 - 5'])
-            ->assertStatus(206)
-            ->assertHeader('Content-Length', '4')
-            ->assertHeader('Content-Range', 'bytes 2-5/10')
-            ->assertContent('2345');
+        $this->assertStreamedRange(
+            $relativeStreamUrl,
+            'Bytes = 2 - 5',
+            206,
+            [
+                'Content-Length' => '4',
+                'Content-Range' => 'bytes 2-5/10',
+            ],
+            '2345',
+        );
 
-        $this->get($relativeStreamUrl, ['Range' => 'bytes=-3'])
-            ->assertStatus(206)
-            ->assertHeader('Content-Range', 'bytes 7-9/10')
-            ->assertContent('789');
+        $this->assertStreamedRange(
+            $relativeStreamUrl,
+            'bytes=-3',
+            206,
+            ['Content-Range' => 'bytes 7-9/10'],
+            '789',
+        );
 
-        $this->get($relativeStreamUrl, ['Range' => 'bytes=8-999'])
-            ->assertStatus(206)
-            ->assertHeader('Content-Range', 'bytes 8-9/10')
-            ->assertContent('89');
+        $this->assertStreamedRange(
+            $relativeStreamUrl,
+            'bytes=8-999',
+            206,
+            ['Content-Range' => 'bytes 8-9/10'],
+            '89',
+        );
 
-        $this->get($relativeStreamUrl, ['Range' => 'items=0-1'])
+        $fullResponse = $this->get($relativeStreamUrl, ['Range' => 'items=0-1']);
+        $fullResponse
             ->assertOk()
             ->assertHeader('Content-Length', '10')
-            ->assertHeaderMissing('Content-Range')
-            ->assertContent('0123456789');
+            ->assertHeaderMissing('Content-Range');
+        $this->assertSame('0123456789', $fullResponse->streamedContent());
 
         $this->get($relativeStreamUrl, ['Range' => 'bytes=10-'])
             ->assertStatus(416)
@@ -139,6 +130,67 @@ class PrivateMediaStreamingTest extends TestCase
 
     public function test_stream_endpoint_rejects_missing_or_invalid_signature(): void
     {
-        $this->get('/api/v1/videos/999/stream')->assertForbidden();
+        config()->set('filesystems.course_media', 'local');
+        Storage::fake('local');
+
+        $video = $this->createReadyVideo();
+        Storage::disk('local')->put($video->source_path, '0123456789');
+
+        $this->get("/api/v1/videos/{$video->id}/stream")
+            ->assertForbidden();
+    }
+
+    private function createReadyVideo(): CourseVideo
+    {
+        $year = AcademicYear::create([
+            'title' => ['ar' => 'السنة الأولى'],
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+
+        $subject = Subject::create([
+            'academic_year_id' => $year->id,
+            'title' => ['ar' => 'الرياضيات'],
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+
+        $course = Course::create([
+            'subject_id' => $subject->id,
+            'slug' => 'private-streaming-course',
+            'title' => ['ar' => 'دورة خاصة'],
+            'description' => ['ar' => 'وصف'],
+            'status' => 'published',
+            'published_at' => now(),
+        ]);
+
+        return CourseVideo::create([
+            'course_id' => $course->id,
+            'title' => ['ar' => 'فيديو'],
+            'source_path' => "courses/{$course->id}/videos/sample.mp4",
+            'duration_seconds' => 60,
+            'sort_order' => 1,
+            'status' => 'ready',
+        ]);
+    }
+
+    /**
+     * @param  array<string, string>  $headers
+     */
+    private function assertStreamedRange(
+        string $url,
+        string $range,
+        int $status,
+        array $headers,
+        string $expectedContent,
+    ): void {
+        $response = $this->get($url, ['Range' => $range]);
+        $response->assertStatus($status);
+
+        foreach ($headers as $name => $value) {
+            $response->assertHeader($name, $value);
+        }
+
+        $this->assertSame($expectedContent, $response->streamedContent());
     }
 }
