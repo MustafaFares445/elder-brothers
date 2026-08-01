@@ -65,11 +65,13 @@ class User extends Authenticatable implements FilamentUser, HasName
     {
         return Attribute::make(
             get: fn (): bool => $this->status === 'active',
-            set: fn (bool $active): array => [
-                'status' => $active ? 'active' : 'inactive',
-                'suspended_at' => null,
-                'suspension_reason' => null,
-            ],
+            set: fn (bool $active): array => ! $active && $this->status === 'suspended'
+                ? []
+                : [
+                    'status' => $active ? 'active' : 'inactive',
+                    'suspended_at' => null,
+                    'suspension_reason' => null,
+                ],
         );
     }
 
