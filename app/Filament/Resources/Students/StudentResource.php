@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Students;
 
 use App\Filament\Resources\Students\Pages;
-use App\Filament\Resources\Students\RelationManagers\DevicesRelationManager;
 use App\Filament\Resources\Students\RelationManagers\SubscriptionsRelationManager;
 use App\Models\User;
 use Filament\Actions\Action;
@@ -182,7 +181,6 @@ class StudentResource extends Resource
     public static function getRelations(): array
     {
         return [
-            DevicesRelationManager::class,
             SubscriptionsRelationManager::class,
         ];
     }

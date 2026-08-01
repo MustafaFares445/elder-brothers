@@ -25,6 +25,7 @@ class User extends Authenticatable implements FilamentUser, HasName
         'phone_verified_at',
         'avatar_path',
         'status',
+        'account_active',
         'is_admin',
         'last_login_at',
         'suspended_at',
@@ -34,6 +35,10 @@ class User extends Authenticatable implements FilamentUser, HasName
     protected $hidden = [
         'password',
         'remember_token',
+    ];
+
+    protected $appends = [
+        'account_active',
     ];
 
     protected function casts(): array
@@ -60,11 +65,13 @@ class User extends Authenticatable implements FilamentUser, HasName
     {
         return Attribute::make(
             get: fn (): bool => $this->status === 'active',
-            set: fn (bool $active): array => [
-                'status' => $active ? 'active' : 'inactive',
-                'suspended_at' => null,
-                'suspension_reason' => null,
-            ],
+            set: fn (bool $active): array => ! $active && $this->status === 'suspended'
+                ? []
+                : [
+                    'status' => $active ? 'active' : 'inactive',
+                    'suspended_at' => null,
+                    'suspension_reason' => null,
+                ],
         );
     }
 

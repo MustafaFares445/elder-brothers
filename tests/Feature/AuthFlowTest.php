@@ -28,14 +28,20 @@ class AuthFlowTest extends TestCase
 
         $user = User::query()->where('phone', '+963911111111')->firstOrFail();
         $this->assertSame('inactive', $user->status);
+        $this->assertFalse($user->account_active);
+        $this->assertFalse($user->toArray()['account_active']);
 
         $this->postJson('/api/v1/auth/login', [
             'phone' => '+963911111111',
             'password' => 'Password123',
         ])->assertForbidden()->assertJsonPath('code', 'ACCOUNT_INACTIVE');
 
-        $user->account_active = true;
-        $user->save();
+        $user->update(['account_active' => true]);
+        $user->refresh();
+
+        $this->assertSame('active', $user->status);
+        $this->assertTrue($user->account_active);
+        $this->assertTrue($user->toArray()['account_active']);
 
         $login = $this->postJson('/api/v1/auth/login', [
             'phone' => '+963911111111',
@@ -55,6 +61,26 @@ class AuthFlowTest extends TestCase
             ->getJson('/api/v1/me')
             ->assertOk()
             ->assertJsonPath('data.user.phone', '+963911111111');
+    }
+
+    public function test_inactive_form_value_preserves_suspended_status_and_metadata(): void
+    {
+        $suspendedAt = now()->subHour()->startOfSecond();
+        $user = User::query()->create([
+            'full_name' => 'Suspended Student',
+            'phone' => '+963933333333',
+            'password' => 'Password123',
+            'status' => 'suspended',
+            'suspended_at' => $suspendedAt,
+            'suspension_reason' => 'Policy violation',
+        ]);
+
+        $user->update(['account_active' => false]);
+        $user->refresh();
+
+        $this->assertSame('suspended', $user->status);
+        $this->assertTrue($suspendedAt->equalTo($user->suspended_at));
+        $this->assertSame('Policy violation', $user->suspension_reason);
     }
 
     public function test_registration_verification_endpoint_is_removed(): void
