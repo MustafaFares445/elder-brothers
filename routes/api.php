@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\QrSubscriptionController;
 use App\Http\Controllers\Api\V1\SupportController;
+use App\Http\Controllers\Api\V1\VideoStreamController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', fn () => response()->json([
@@ -27,7 +28,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('reset-password', [AuthController::class, 'resetPassword']);
     });
 
-    Route::match(['get', 'head'], 'videos/{video}/stream', [ContentController::class, 'stream'])
+    Route::match(['get', 'head'], 'videos/{video}/stream', VideoStreamController::class)
         ->middleware('signed')
         ->name('api.v1.videos.stream');
 
