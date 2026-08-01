@@ -27,6 +27,7 @@ class ProfileController extends Controller
         return $this->success([
             'user' => new UserResource($user),
             'preferences' => $preferences->only(['locale', 'smart_notifications', 'download_quality']),
+            'status' => $user->status,
             'active_subscription_count' => $user->subscriptions()->where('status', 'active')->count(),
             'expired_subscription_count' => $user->subscriptions()->where('status', 'expired')->count(),
         ]);

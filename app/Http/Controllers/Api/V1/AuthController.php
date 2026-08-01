@@ -50,11 +50,14 @@ class AuthController extends Controller
             'is_admin' => false,
         ]);
 
+        $token = $user->createToken($data['device_name'] ?? 'mobile')->plainTextToken;
+
         return $this->success([
             'user_id' => $user->id,
             'phone' => $user->phone,
             'status' => $user->status,
             'activation_required' => true,
+            'token' => $token,
         ], __('api.account_pending_activation'), 'REGISTRATION_PENDING_ACTIVATION', 201);
     }
 
