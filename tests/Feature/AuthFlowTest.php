@@ -28,14 +28,20 @@ class AuthFlowTest extends TestCase
 
         $user = User::query()->where('phone', '+963911111111')->firstOrFail();
         $this->assertSame('inactive', $user->status);
+        $this->assertFalse($user->account_active);
+        $this->assertFalse($user->toArray()['account_active']);
 
         $this->postJson('/api/v1/auth/login', [
             'phone' => '+963911111111',
             'password' => 'Password123',
         ])->assertForbidden()->assertJsonPath('code', 'ACCOUNT_INACTIVE');
 
-        $user->account_active = true;
-        $user->save();
+        $user->update(['account_active' => true]);
+        $user->refresh();
+
+        $this->assertSame('active', $user->status);
+        $this->assertTrue($user->account_active);
+        $this->assertTrue($user->toArray()['account_active']);
 
         $login = $this->postJson('/api/v1/auth/login', [
             'phone' => '+963911111111',
