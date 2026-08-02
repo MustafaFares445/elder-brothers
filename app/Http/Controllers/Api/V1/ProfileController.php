@@ -102,18 +102,27 @@ class ProfileController extends Controller
     {
         $data = $request->validate([
             'device_id' => ['required', 'string', 'max:191'],
-            'fcm_token' => ['required', 'string', 'max:2048'],
+            'fcm_token' => ['nullable', 'string', 'max:2048'],
             'platform' => ['required', Rule::in(['android', 'ios'])],
-            'app_version' => ['nullable', 'string', 'max:30'],
+            'app_version' => ['nullable', 'string', 'max:50'],
+            'device_name' => ['nullable', 'string', 'max:191'],
             'notifications_enabled' => ['nullable', 'boolean'],
         ]);
+
         $device = UserDevice::updateOrCreate(
             ['user_id' => $request->user()->id, 'device_id' => $data['device_id']],
-            $data + ['last_seen_at' => now()],
+            [
+                'fcm_token' => $data['fcm_token'] ?? '',
+                'platform' => $data['platform'],
+                'app_version' => $data['app_version'] ?? null,
+                'device_name' => $data['device_name'] ?? null,
+                'notifications_enabled' => $data['notifications_enabled'] ?? true,
+                'last_seen_at' => now(),
+            ],
         );
 
         return $this->success(
-            $device->only(['id', 'device_id', 'platform', 'notifications_enabled', 'last_seen_at']),
+            $device->only(['id', 'device_id', 'platform', 'device_name', 'notifications_enabled', 'last_seen_at', 'revoked_at']),
             __('api.device_registered'),
             'DEVICE_REGISTERED',
         );
@@ -122,8 +131,16 @@ class ProfileController extends Controller
     public function destroyDevice(Request $request, UserDevice $device)
     {
         abort_unless($device->user_id === $request->user()->id, 404);
-        $device->delete();
 
-        return $this->success(null, __('api.device_removed'), 'DEVICE_REMOVED');
+        $device->forceFill(['revoked_at' => now()])->save();
+        $device->offlineDownloads()
+            ->whereNull('revoked_at')
+            ->update([
+                'status' => 'revoked',
+                'revoked_at' => now(),
+                'revoke_reason' => 'device_revoked',
+            ]);
+
+        return $this->success(null, __('api.device_removed'), 'DEVICE_REVOKED');
     }
 }
