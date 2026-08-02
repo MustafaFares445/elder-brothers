@@ -57,6 +57,13 @@ class User extends Authenticatable implements FilamentUser, HasName
         static::updated(function (User $user): void {
             if ($user->wasChanged('status') && $user->status !== 'active') {
                 $user->tokens()->delete();
+                $user->offlineDownloads()
+                    ->whereNull('revoked_at')
+                    ->update([
+                        'status' => 'revoked',
+                        'revoked_at' => now(),
+                        'revoke_reason' => 'account_inactive',
+                    ]);
             }
         });
     }
@@ -95,6 +102,11 @@ class User extends Authenticatable implements FilamentUser, HasName
     public function devices(): HasMany
     {
         return $this->hasMany(UserDevice::class);
+    }
+
+    public function offlineDownloads(): HasMany
+    {
+        return $this->hasMany(OfflineDownload::class);
     }
 
     public function preferences()
