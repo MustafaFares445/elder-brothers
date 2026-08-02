@@ -6,10 +6,10 @@ use App\Models\CourseVideo;
 use App\Models\OfflineDownload;
 use App\Models\User;
 use App\Models\UserDevice;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final class OfflineDownloadService
 {
@@ -27,7 +27,7 @@ final class OfflineDownloadService
         }
 
         if (! $this->access->canWatch($user, $video)) {
-            throw new AuthorizationException('SUBSCRIPTION_REQUIRED');
+            throw new HttpException(403, 'SUBSCRIPTION_REQUIRED');
         }
 
         $deviceCount = $user->devices()->whereNull('revoked_at')->count();
@@ -116,7 +116,7 @@ final class OfflineDownloadService
     public function assertOwned(User $user, OfflineDownload $download): void
     {
         if ($download->user_id !== $user->id) {
-            throw new AuthorizationException('OFFLINE_DOWNLOAD_NOT_FOUND');
+            throw new HttpException(403, 'OFFLINE_DOWNLOAD_NOT_FOUND');
         }
     }
 
