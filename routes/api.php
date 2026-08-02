@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\ContentController;
+use App\Http\Controllers\Api\V1\DownloadOfflineVideoController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\OfflineVideoController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\QrSubscriptionController;
 use App\Http\Controllers\Api\V1\SupportController;
@@ -16,6 +18,7 @@ Route::get('/health', fn () => response()->json([
     'message' => 'OK',
     'data' => ['timestamp' => now()->toIso8601String()],
     'meta' => null,
+    'server_time' => now()->utc()->toIso8601String(),
 ]));
 
 Route::prefix('v1')->group(function (): void {
@@ -32,6 +35,10 @@ Route::prefix('v1')->group(function (): void {
         ->middleware('signed')
         ->name('api.v1.videos.stream');
 
+    Route::get('video-files/{video}/download', DownloadOfflineVideoController::class)
+        ->middleware('signed')
+        ->name('api.v1.video-files.download');
+
     Route::middleware(['auth:sanctum', 'active'])->group(function (): void {
         Route::post('auth/logout', [AuthController::class, 'logout']);
 
@@ -42,6 +49,7 @@ Route::prefix('v1')->group(function (): void {
         Route::put('me/preferences', [ProfileController::class, 'preferences']);
         Route::post('me/devices', [ProfileController::class, 'storeDevice']);
         Route::delete('me/devices/{device}', [ProfileController::class, 'destroyDevice']);
+        Route::post('devices/register', [OfflineVideoController::class, 'registerDevice']);
 
         Route::get('home', [CatalogController::class, 'home']);
         Route::get('academic-years', [CatalogController::class, 'academicYears']);
@@ -59,6 +67,12 @@ Route::prefix('v1')->group(function (): void {
         Route::post('subscriptions/qr/redeem', [QrSubscriptionController::class, 'redeem']);
 
         Route::post('videos/{video}/playback-url', [ContentController::class, 'playbackUrl']);
+        Route::post('videos/{video}/play-session', [OfflineVideoController::class, 'playSession']);
+        Route::post('videos/{video}/offline-downloads', [OfflineVideoController::class, 'createOfflineDownload']);
+        Route::post('offline-downloads/{download}/complete', [OfflineVideoController::class, 'complete']);
+        Route::post('offline-downloads/{download}/refresh', [OfflineVideoController::class, 'refresh']);
+        Route::delete('offline-downloads/{download}', [OfflineVideoController::class, 'destroy']);
+
         Route::put('videos/{video}/progress', [ContentController::class, 'progress']);
         Route::post('videos/{video}/complete', [ContentController::class, 'complete']);
         Route::post('videos/{video}/download-url', [ContentController::class, 'videoDownloadUrl']);
