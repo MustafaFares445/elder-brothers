@@ -68,6 +68,11 @@ final class OfflineDownloadService
     public function refresh(User $user, OfflineDownload $download): OfflineDownload
     {
         $this->assertOwned($user, $download);
+
+        if ($download->isRevoked()) {
+            return $download;
+        }
+
         $download->loadMissing(['video.course', 'device']);
 
         if ($download->device->isRevoked()) {
