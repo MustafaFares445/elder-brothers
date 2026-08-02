@@ -16,7 +16,10 @@ class CourseVideo extends Model
         'thumbnail_url',
         'source_path',
         'hls_manifest_path',
+        'private_disk',
         'duration_seconds',
+        'size_bytes',
+        'sha256',
         'sort_order',
         'is_preview',
         'is_downloadable',
@@ -28,6 +31,7 @@ class CourseVideo extends Model
         return [
             'title' => 'array',
             'lesson_label' => 'array',
+            'size_bytes' => 'integer',
             'is_preview' => 'boolean',
             'is_downloadable' => 'boolean',
         ];
@@ -57,10 +61,41 @@ class CourseVideo extends Model
         static::saving(function (CourseVideo $video): void {
             $video->is_preview = false;
             $video->is_downloadable = true;
+            $video->private_disk ??= (string) config('filesystems.course_media', 'local');
+
+            if (! filled($video->source_path) || ! $video->isDirty('source_path')) {
+                return;
+            }
+
+            $disk = Storage::disk($video->private_disk);
+
+            if (! $disk->exists($video->source_path)) {
+                return;
+            }
+
+            $video->size_bytes = $disk->size($video->source_path);
+            $stream = $disk->readStream($video->source_path);
+
+            if (is_resource($stream)) {
+                $context = hash_init('sha256');
+
+                while (! feof($stream)) {
+                    $chunk = fread($stream, 1024 * 1024);
+
+                    if ($chunk === false) {
+                        break;
+                    }
+
+                    hash_update($context, $chunk);
+                }
+
+                fclose($stream);
+                $video->sha256 = hash_final($context);
+            }
         });
 
         static::deleted(function (CourseVideo $video): void {
-            $disk = Storage::disk(config('filesystems.course_media', 'local'));
+            $disk = Storage::disk($video->private_disk ?: config('filesystems.course_media', 'local'));
             $paths = array_filter([
                 $video->source_path,
                 $video->hls_manifest_path,
@@ -81,6 +116,11 @@ class CourseVideo extends Model
     public function progress(): HasMany
     {
         return $this->hasMany(VideoProgress::class);
+    }
+
+    public function offlineDownloads(): HasMany
+    {
+        return $this->hasMany(OfflineDownload::class);
     }
 
     public function localized(string $field, ?string $locale = null): ?string
