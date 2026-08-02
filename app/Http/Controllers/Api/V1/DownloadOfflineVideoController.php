@@ -13,10 +13,13 @@ class DownloadOfflineVideoController extends Controller
 {
     public function __invoke(Request $request, CourseVideo $video): BinaryFileResponse
     {
-        $download = OfflineDownload::query()->findOrFail((string) $request->query('download'));
+        $download = OfflineDownload::query()
+            ->with('device')
+            ->findOrFail((string) $request->query('download'));
 
         abort_unless($download->course_video_id === $video->id, 404);
         abort_if($download->isRevoked(), 403, 'OFFLINE_DOWNLOAD_REVOKED');
+        abort_if($download->device->isRevoked(), 403, 'DEVICE_REVOKED');
         abort_if($download->offline_expires_at->isPast(), 403, 'OFFLINE_LICENSE_EXPIRED');
         abort_unless($video->status === 'ready' && filled($video->source_path), 404);
 
