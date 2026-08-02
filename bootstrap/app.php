@@ -37,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 'code' => 'VALIDATION_ERROR',
                 'message' => __('api.validation_failed'),
                 'errors' => $e->errors(),
+                'server_time' => now()->utc()->toIso8601String(),
             ], 422);
         });
 
@@ -61,6 +62,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 'message' => $status >= 500 && ! config('app.debug')
                     ? __('api.server_error')
                     : ($e->getMessage() ?: __('api.request_failed')),
+                'server_time' => now()->utc()->toIso8601String(),
             ], $status);
         });
     })->create();
