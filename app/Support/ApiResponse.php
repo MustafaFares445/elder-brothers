@@ -33,6 +33,7 @@ trait ApiResponse
             'message' => $message ?: __('api.operation_completed'),
             'data' => $data,
             'meta' => $meta,
+            'server_time' => now()->utc()->toIso8601String(),
         ], $status);
     }
 
@@ -43,6 +44,7 @@ trait ApiResponse
             'code' => $code,
             'message' => $message,
             'errors' => $errors ?: null,
+            'server_time' => now()->utc()->toIso8601String(),
         ], fn ($value) => $value !== null), $status);
     }
 }
