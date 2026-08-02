@@ -69,13 +69,13 @@ Route::prefix('v1')->group(function (): void {
         Route::post('videos/{video}/playback-url', [ContentController::class, 'playbackUrl']);
         Route::post('videos/{video}/play-session', [OfflineVideoController::class, 'playSession']);
         Route::post('videos/{video}/offline-downloads', [OfflineVideoController::class, 'createOfflineDownload']);
+        Route::post('videos/{video}/download-url', [OfflineVideoController::class, 'createOfflineDownload']);
         Route::post('offline-downloads/{download}/complete', [OfflineVideoController::class, 'complete']);
         Route::post('offline-downloads/{download}/refresh', [OfflineVideoController::class, 'refresh']);
         Route::delete('offline-downloads/{download}', [OfflineVideoController::class, 'destroy']);
 
         Route::put('videos/{video}/progress', [ContentController::class, 'progress']);
         Route::post('videos/{video}/complete', [ContentController::class, 'complete']);
-        Route::post('videos/{video}/download-url', [ContentController::class, 'videoDownloadUrl']);
         Route::post('course-files/{courseFile}/download-url', [ContentController::class, 'fileDownloadUrl']);
 
         Route::get('notifications', [NotificationController::class, 'index']);
