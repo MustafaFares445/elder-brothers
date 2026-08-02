@@ -11,9 +11,7 @@ use App\Services\SignedVideoUrlService;
 use App\Services\VideoAccessService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class OfflineVideoController extends Controller
 {
@@ -57,10 +55,11 @@ class OfflineVideoController extends Controller
         Request $request,
         CourseVideo $video,
         VideoAccessService $access,
+        OfflineDownloadService $downloads,
         SignedVideoUrlService $urls,
     ) {
         abort_unless($access->canWatch($request->user(), $video), 403, 'SUBSCRIPTION_REQUIRED');
-
+        $downloads->ensureVideoMetadata($video);
         $signed = $urls->playback($video);
 
         return $this->success([
@@ -127,7 +126,11 @@ class OfflineVideoController extends Controller
         OfflineDownloadService $downloads,
     ) {
         $downloads->assertOwned($request->user(), $download);
+        $download->loadMissing('device');
+
         abort_if($download->isRevoked(), 409, 'OFFLINE_DOWNLOAD_REVOKED');
+        abort_if($download->device->isRevoked(), 409, 'DEVICE_REVOKED');
+        abort_if($download->offline_expires_at->isPast(), 409, 'OFFLINE_LICENSE_EXPIRED');
 
         $data = $request->validate([
             'encrypted_size_bytes' => ['required', 'integer', 'min:1'],
@@ -175,27 +178,5 @@ class OfflineVideoController extends Controller
         $downloads->delete($request->user(), $download);
 
         return $this->success(null, 'تم حذف سجل التنزيل.', 'OFFLINE_DOWNLOAD_DELETED');
-    }
-
-    public function downloadFile(
-        Request $request,
-        CourseVideo $video,
-        OfflineDownload $download,
-    ): BinaryFileResponse {
-        abort_unless($download->course_video_id === $video->id, 404);
-        abort_if($download->isRevoked(), 403, 'OFFLINE_DOWNLOAD_REVOKED');
-        abort_if($download->offline_expires_at->isPast(), 403, 'OFFLINE_LICENSE_EXPIRED');
-        abort_unless($video->status === 'ready' && filled($video->source_path), 404);
-
-        $disk = Storage::disk($video->private_disk ?: config('filesystems.course_media', 'local'));
-        abort_unless($disk->exists($video->source_path), 404, 'VIDEO_SOURCE_NOT_FOUND');
-
-        return response()->file($disk->path($video->source_path), [
-            'Content-Type' => 'video/mp4',
-            'Content-Disposition' => 'attachment; filename="video-'.$video->id.'.mp4"',
-            'Accept-Ranges' => 'bytes',
-            'Cache-Control' => 'private, no-store, max-age=0',
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
     }
 }
