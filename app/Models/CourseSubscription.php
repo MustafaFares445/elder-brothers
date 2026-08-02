@@ -31,6 +31,38 @@ class CourseSubscription extends Model
         static::saving(function (CourseSubscription $subscription): void {
             $subscription->source = 'qr';
         });
+
+        static::updated(function (CourseSubscription $subscription): void {
+            if (! $subscription->wasChanged(['status', 'revoked_at', 'expires_at'])) {
+                return;
+            }
+
+            if ($subscription->isActive()) {
+                return;
+            }
+
+            OfflineDownload::query()
+                ->where('user_id', $subscription->user_id)
+                ->whereNull('revoked_at')
+                ->whereHas('video', fn ($query) => $query->where('course_id', $subscription->course_id))
+                ->update([
+                    'status' => 'revoked',
+                    'revoked_at' => now(),
+                    'revoke_reason' => 'subscription_expired',
+                ]);
+        });
+
+        static::deleted(function (CourseSubscription $subscription): void {
+            OfflineDownload::query()
+                ->where('user_id', $subscription->user_id)
+                ->whereNull('revoked_at')
+                ->whereHas('video', fn ($query) => $query->where('course_id', $subscription->course_id))
+                ->update([
+                    'status' => 'revoked',
+                    'revoked_at' => now(),
+                    'revoke_reason' => 'subscription_revoked',
+                ]);
+        });
     }
 
     public function user(): BelongsTo
