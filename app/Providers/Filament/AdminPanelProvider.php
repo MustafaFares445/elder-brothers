@@ -23,7 +23,6 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -43,7 +42,9 @@ class AdminPanelProvider extends PanelProvider
             ->profile()
             ->brandName('الأخ الأكبر')
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => '#DDB867',
+                'secondary' => '#4D3922',
+                'gray' => '#0D0C0D',
             ])
             ->defaultThemeMode(ThemeMode::Light)
             ->sidebarCollapsibleOnDesktop()
