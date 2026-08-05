@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ChunkedVideoUploadMetadata;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -73,7 +74,24 @@ class CourseVideo extends Model
                 return;
             }
 
-            $video->size_bytes = $disk->size($video->source_path);
+            $actualSize = (int) $disk->size($video->source_path);
+            $chunkedUploadMetadata = ChunkedVideoUploadMetadata::pull(
+                $video->private_disk,
+                $video->source_path,
+            );
+
+            if (
+                is_array($chunkedUploadMetadata)
+                && (int) ($chunkedUploadMetadata['size_bytes'] ?? 0) === $actualSize
+                && preg_match('/^[a-f0-9]{64}$/', (string) ($chunkedUploadMetadata['sha256'] ?? '')) === 1
+            ) {
+                $video->size_bytes = $actualSize;
+                $video->sha256 = $chunkedUploadMetadata['sha256'];
+
+                return;
+            }
+
+            $video->size_bytes = $actualSize;
             $stream = $disk->readStream($video->source_path);
 
             if (is_resource($stream)) {
@@ -95,12 +113,17 @@ class CourseVideo extends Model
         });
 
         static::deleted(function (CourseVideo $video): void {
-            $disk = Storage::disk($video->private_disk ?: config('filesystems.course_media', 'local'));
+            $diskName = $video->private_disk ?: config('filesystems.course_media', 'local');
+            $disk = Storage::disk($diskName);
             $paths = array_filter([
                 $video->source_path,
                 $video->hls_manifest_path,
                 $video->thumbnail_url,
             ]);
+
+            if (filled($video->source_path)) {
+                ChunkedVideoUploadMetadata::forget((string) $diskName, $video->source_path);
+            }
 
             if ($paths !== []) {
                 $disk->delete($paths);
