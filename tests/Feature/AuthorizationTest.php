@@ -20,6 +20,6 @@ class AuthorizationTest extends TestCase
 
         $this->postJson("/api/v1/videos/{$fixture['subscribed_video']->id}/playback-url")
             ->assertForbidden()
-            ->assertJsonPath('code', 'SUBSCRIPTION_REQUIRED');
+            ->assertJsonPath('code', 'FORBIDDEN');
     }
 }

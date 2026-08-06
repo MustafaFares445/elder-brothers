@@ -55,6 +55,8 @@ class ApiContractTest extends TestCase
 
     public function test_home_returns_real_seeded_catalog(): void
     {
+        app()->setLocale('ar');
+
         $user = User::query()->where('phone', '+963900000001')->firstOrFail();
 
         $this->actingAs($user)

@@ -27,6 +27,6 @@ class VideoProgressTest extends TestCase
             'event' => 'pause',
         ])->assertOk()
             ->assertJsonPath('data.is_completed', true)
-            ->assertJsonPath('code', 'PROGRESS_UPDATED');
+            ->assertJsonPath('code', 'PROGRESS_SAVED');
     }
 }
