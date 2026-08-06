@@ -2,21 +2,20 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\CreatesLearningFixtures;
 use Tests\TestCase;
 
 class CatalogTest extends TestCase
 {
+    use CreatesLearningFixtures;
     use RefreshDatabase;
 
     public function test_home_and_subject_course_catalog_return_seeded_data(): void
     {
-        $this->seed(DatabaseSeeder::class);
-        $student = User::where('phone', '+963900000002')->firstOrFail();
-        Sanctum::actingAs($student);
+        $fixture = $this->createLearningFixture();
+        Sanctum::actingAs($fixture['subscriber']);
 
         $home = $this->getJson('/api/v1/home');
         $home->assertOk()

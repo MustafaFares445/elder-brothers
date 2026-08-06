@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CourseVideos;
 
+use App\Filament\Forms\Components\ChunkedVideoUpload;
 use App\Filament\Resources\CourseVideos\Pages;
 use App\Models\Course;
 use App\Models\CourseVideo;
@@ -11,6 +12,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -30,17 +32,17 @@ class CourseVideoResource extends Resource
                     fn (Course $course) => [$course->id => $course->localized('title')],
                 ))
                 ->required()
-                ->searchable(),
+                ->searchable()
+                ->live(),
             TextInput::make('title.ar')->required(),
             TextInput::make('title.en')->required(),
             TextInput::make('lesson_label.ar'),
             TextInput::make('lesson_label.en'),
-            FileUpload::make('source_path')
-                ->disk(fn () => config('filesystems.course_media', 'local'))
-                ->directory('courses/videos')
-                ->visibility('private')
-                ->acceptedFileTypes(['video/mp4'])
-                ->required(),
+            ChunkedVideoUpload::make('source_path')
+                ->label(__('dashboard.fields.source_path'))
+                ->courseId(fn (Get $get): ?int => filled($get('course_id')) ? (int) $get('course_id') : null)
+                ->required()
+                ->columnSpanFull(),
             FileUpload::make('thumbnail_url')
                 ->disk(fn () => config('filesystems.course_media', 'local'))
                 ->directory('courses/video-thumbnails')

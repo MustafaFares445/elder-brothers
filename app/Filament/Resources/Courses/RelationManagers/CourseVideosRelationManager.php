@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Courses\RelationManagers;
 
+use App\Filament\Forms\Components\ChunkedVideoUpload;
 use App\Models\CourseVideo;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -38,12 +39,9 @@ class CourseVideosRelationManager extends RelationManager
                 ])
                 ->columns(2)
                 ->columnSpanFull(),
-            FileUpload::make('source_path')
+            ChunkedVideoUpload::make('source_path')
                 ->label(__('dashboard.fields.source_path'))
-                ->disk(fn () => config('filesystems.course_media', 'local'))
-                ->directory(fn () => 'courses/'.$this->getOwnerRecord()->getKey().'/videos')
-                ->visibility('private')
-                ->acceptedFileTypes(['video/mp4'])
+                ->courseId(fn (): int => (int) $this->getOwnerRecord()->getKey())
                 ->required()
                 ->columnSpanFull(),
             TextInput::make('hls_manifest_path')
