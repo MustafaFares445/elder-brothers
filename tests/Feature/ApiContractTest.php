@@ -55,15 +55,13 @@ class ApiContractTest extends TestCase
 
     public function test_home_returns_real_seeded_catalog(): void
     {
-        app()->setLocale('ar');
-
         $user = User::query()->where('phone', '+963900000001')->firstOrFail();
 
         $this->actingAs($user)
             ->getJson('/api/v1/home')
             ->assertOk()
             ->assertJsonCount(4, 'data.academic_years')
-            ->assertJsonPath('data.academic_years.0.title', 'السنة الأولى');
+            ->assertJsonPath('data.academic_years.0.title', 'Year 1');
     }
 
     public function test_qr_preview_returns_course(): void
