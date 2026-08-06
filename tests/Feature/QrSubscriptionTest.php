@@ -2,21 +2,20 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\CreatesLearningFixtures;
 use Tests\TestCase;
 
 class QrSubscriptionTest extends TestCase
 {
+    use CreatesLearningFixtures;
     use RefreshDatabase;
 
     public function test_qr_can_be_previewed_and_redeemed_once(): void
     {
-        $this->seed(DatabaseSeeder::class);
-        $user = User::factory()->create();
-        Sanctum::actingAs($user);
+        $fixture = $this->createLearningFixture();
+        Sanctum::actingAs($fixture['active_user']);
 
         $code = 'ELDER-MATH-2026-365';
 
@@ -30,12 +29,13 @@ class QrSubscriptionTest extends TestCase
             'confirm' => true,
             'device_id' => 'test-device',
         ])->assertCreated()
-            ->assertJsonPath('code', 'QR_REDEEMED')
+            ->assertJsonPath('code', 'SUBSCRIPTION_ACTIVATED')
             ->assertJsonPath('data.was_extended', false);
 
         $this->postJson('/api/v1/subscriptions/qr/redeem', [
             'code' => $code,
             'confirm' => true,
-        ])->assertStatus(409)->assertJsonPath('code', 'QR_ALREADY_USED');
+        ])->assertStatus(409)
+            ->assertJsonPath('code', 'QR_LIMIT_REACHED');
     }
 }
