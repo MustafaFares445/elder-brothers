@@ -87,10 +87,13 @@ class CourseVideosRelationManager extends RelationManager
                     ->badge(),
             ])
             ->headerActions([
-                CreateAction::make()->label('إضافة فيديو'),
+                CreateAction::make()
+                    ->label('إضافة فيديو')
+                    ->closeModalByClickingAway(false),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->closeModalByClickingAway(false),
                 Action::make('mark_ready')
                     ->label(__('dashboard.actions.mark_ready'))
                     ->visible(fn (CourseVideo $record) => $record->status !== 'ready')

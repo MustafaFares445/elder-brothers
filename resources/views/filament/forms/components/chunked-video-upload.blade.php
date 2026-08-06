@@ -17,6 +17,7 @@
         'fileTooLarge' => __('chunked_upload.file_too_large'),
         'requestFailed' => __('chunked_upload.request_failed'),
         'remainingShort' => __('chunked_upload.remaining_short'),
+        'closeWarning' => __('chunked_upload.close_warning'),
     ];
 @endphp
 
@@ -388,9 +389,6 @@
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="min-w-0">
                     <p class="truncate text-sm font-medium text-gray-950 dark:text-white" x-text="fileName || state || messages.select"></p>
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        {{ __('chunked_upload.drop_hint') }}
-                    </p>
                 </div>
 
                 <button
@@ -429,6 +427,13 @@
                 <span x-show="speed > 0" x-text="`${formatBytes(speed)}/s`"></span>
                 <span x-show="etaSeconds !== null && status === 'uploading'" x-text="`${formatTime(etaSeconds)} ${messages.remainingShort}`"></span>
             </div>
+
+            <p
+                x-cloak
+                x-show="isActive"
+                class="mt-3 rounded-lg bg-warning-50 px-3 py-2 text-sm text-warning-700 dark:bg-warning-950/40 dark:text-warning-300"
+                x-text="messages.closeWarning"
+            ></p>
 
             <p
                 x-cloak

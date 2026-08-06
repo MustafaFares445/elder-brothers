@@ -3,7 +3,6 @@
 return [
     'select_video' => 'Select MP4 video',
     'replace_video' => 'Replace video',
-    'drop_hint' => 'Choose a large MP4 file. It will be uploaded in small resumable chunks.',
     'existing_file' => 'Current video: :path',
     'preparing' => 'Preparing upload…',
     'uploading' => 'Uploading video…',
@@ -19,6 +18,7 @@ return [
     'resume' => 'Resume',
     'retry' => 'Retry',
     'cancel' => 'Cancel upload',
+    'close_warning' => 'Warning: Closing this window while the video is uploading will cancel the upload.',
     'course_required' => 'Select the course before choosing a video.',
     'invalid_type' => 'Only MP4 video files are allowed.',
     'file_too_large' => 'The selected video is larger than the configured maximum size.',
