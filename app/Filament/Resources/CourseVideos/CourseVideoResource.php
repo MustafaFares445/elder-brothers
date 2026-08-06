@@ -48,7 +48,6 @@ class CourseVideoResource extends Resource
                 ->directory('courses/video-thumbnails')
                 ->visibility('private')
                 ->image(),
-            TextInput::make('hls_manifest_path'),
             TextInput::make('duration_seconds')->integer()->required(),
             TextInput::make('sort_order')->integer()->required(),
             Toggle::make('is_preview'),

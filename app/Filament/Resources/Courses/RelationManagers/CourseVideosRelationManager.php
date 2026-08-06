@@ -44,9 +44,6 @@ class CourseVideosRelationManager extends RelationManager
                 ->courseId(fn (): int => (int) $this->getOwnerRecord()->getKey())
                 ->required()
                 ->columnSpanFull(),
-            TextInput::make('hls_manifest_path')
-                ->label(__('dashboard.fields.hls_manifest_path'))
-                ->maxLength(2048),
             FileUpload::make('thumbnail_url')
                 ->label(__('dashboard.fields.thumbnail_url'))
                 ->disk(fn () => config('filesystems.course_media', 'local'))
